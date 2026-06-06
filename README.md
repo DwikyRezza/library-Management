@@ -1,59 +1,1052 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# LibraFlow - Modern Library Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+LibraFlow adalah aplikasi web untuk mengelola perpustakaan. Aplikasi ini
+memiliki katalog buku publik, pendaftaran anggota, persetujuan anggota,
+pengelolaan buku dan eksemplar, peminjaman, pengembalian, status terlambat,
+riwayat transaksi, laporan, dan export CSV.
 
-## About Laravel
+Dokumen ini ditulis untuk pemula. Ikuti langkahnya dari atas ke bawah. Jangan
+melewati langkah kecuali tertulis opsional.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Langsung Jalankan Sekarang
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Pada komputer dan folder project ini, dependency, database, dan asset frontend
+sudah tersedia. Untuk membuka web sekarang:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. Buka PowerShell.
+2. Jalankan:
 
-## Learning Laravel
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+php artisan serve
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+3. Jangan tutup PowerShell tersebut.
+4. Buka browser dan kunjungi:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```text
+http://127.0.0.1:8000
+```
 
-## Laravel Sponsors
+5. Untuk masuk sebagai admin, buka:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```text
+http://127.0.0.1:8000/login
+```
 
-### Premium Partners
+Gunakan:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```text
+Email    : admin@libraflow.test
+Username : admin
+Password : password
+```
 
-## Contributing
+Jika perintah di atas menghasilkan error, lanjutkan membaca panduan dari
+bagian [Program yang Harus Dipasang](#2-program-yang-harus-dipasang).
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Daftar Isi
 
-## Code of Conduct
+1. [Istilah Dasar](#1-istilah-dasar)
+2. [Program yang Harus Dipasang](#2-program-yang-harus-dipasang)
+3. [Memeriksa Program yang Sudah Terpasang](#3-memeriksa-program-yang-sudah-terpasang)
+4. [Menjalankan Project untuk Pertama Kali](#4-menjalankan-project-untuk-pertama-kali)
+5. [Membuka dan Login ke Aplikasi](#5-membuka-dan-login-ke-aplikasi)
+6. [Cara Menjalankan Lagi Besok](#6-cara-menjalankan-lagi-besok)
+7. [Cara Menghentikan Aplikasi](#7-cara-menghentikan-aplikasi)
+8. [Mode Development](#8-mode-development)
+9. [Perintah Penting](#9-perintah-penting)
+10. [Mengatasi Error Umum](#10-mengatasi-error-umum)
+11. [Deployment ke Server Cloud](#11-deployment-ke-server-cloud)
+12. [Update Aplikasi di Server](#12-update-aplikasi-di-server)
+13. [Backup dan Keamanan](#13-backup-dan-keamanan)
+14. [Struktur dan Arsitektur Project](#14-struktur-dan-arsitektur-project)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## 1. Istilah Dasar
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Sebelum mulai, kenali beberapa istilah berikut:
 
-## License
+- **Terminal** adalah aplikasi untuk mengetik perintah.
+- **PowerShell** adalah terminal bawaan Windows.
+- **PHP** adalah bahasa pemrograman utama aplikasi ini.
+- **Laravel** adalah framework PHP yang digunakan LibraFlow.
+- **Composer** memasang dependency atau library PHP.
+- **Node.js dan npm** memasang serta membangun CSS dan JavaScript.
+- **SQLite** adalah database berbentuk satu file. Ini dipakai untuk development
+  lokal karena mudah digunakan.
+- **MySQL** adalah database yang lebih disarankan untuk server production.
+- **`.env`** adalah file konfigurasi pribadi mesin atau server. File ini tidak
+  boleh dibagikan atau dimasukkan ke Git.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Semua perintah dalam panduan lokal dijalankan dari folder project:
+
+```text
+D:\Rezza\Self Project\library-management
+```
+
+## 2. Program yang Harus Dipasang
+
+Untuk menjalankan LibraFlow di Windows, siapkan:
+
+1. **PHP 8.2 atau lebih baru**
+2. **Composer 2**
+3. **Node.js versi LTS**
+4. **Git**, opsional jika project sudah tersedia di komputer
+
+### Pilihan Mudah untuk PHP di Windows
+
+Cara termudah untuk pemula adalah memasang **XAMPP**. LibraFlow tidak wajib
+dijalankan melalui Apache XAMPP; kita hanya memakai PHP yang terdapat di XAMPP.
+
+Setelah XAMPP dipasang, lokasi PHP biasanya:
+
+```text
+C:\xampp\php
+```
+
+Tambahkan folder tersebut ke `PATH` Windows:
+
+1. Buka Start Menu.
+2. Cari **Environment Variables**.
+3. Pilih **Edit the system environment variables**.
+4. Klik **Environment Variables**.
+5. Pada bagian user variables, pilih `Path`, lalu klik **Edit**.
+6. Klik **New** dan masukkan `C:\xampp\php`.
+7. Simpan semua jendela dengan tombol **OK**.
+8. Tutup dan buka kembali PowerShell.
+
+Pasang Composer dari situs resmi Composer. Saat installer meminta lokasi PHP,
+pilih:
+
+```text
+C:\xampp\php\php.exe
+```
+
+Pasang Node.js versi LTS. npm akan ikut terpasang bersama Node.js.
+
+## 3. Memeriksa Program yang Sudah Terpasang
+
+Buka PowerShell, lalu jalankan satu per satu:
+
+```powershell
+php -v
+composer --version
+node --version
+npm.cmd --version
+```
+
+Hasilnya harus menampilkan nomor versi dan bukan pesan
+`is not recognized as the name of a cmdlet`.
+
+Project ini memerlukan ekstensi PHP SQLite. Periksa dengan:
+
+```powershell
+php -m | Select-String "pdo_sqlite"
+```
+
+Jika muncul tulisan `pdo_sqlite`, SQLite sudah siap.
+
+Jika tidak muncul, buka file `php.ini` yang dipakai PHP:
+
+```powershell
+php --ini
+```
+
+Cari baris berikut di `php.ini`, lalu hapus tanda titik koma `;` di depannya:
+
+```ini
+extension=pdo_sqlite
+extension=sqlite3
+```
+
+Simpan file, tutup PowerShell, lalu buka kembali.
+
+## 4. Menjalankan Project untuk Pertama Kali
+
+Bagian ini hanya perlu dilakukan saat pertama kali menyiapkan project atau
+setelah project dipindahkan ke komputer baru.
+
+### Langkah 1 - Buka Folder Project
+
+Buka PowerShell, lalu masuk ke folder project:
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+```
+
+Tanda kutip wajib digunakan karena nama folder mengandung spasi.
+
+Untuk memastikan foldernya benar, jalankan:
+
+```powershell
+Get-ChildItem
+```
+
+Anda seharusnya melihat file seperti `artisan`, `composer.json`,
+`package.json`, dan folder `app`.
+
+### Langkah 2 - Pasang Dependency PHP
+
+Jalankan:
+
+```powershell
+composer install
+```
+
+Tunggu sampai selesai. Composer akan membuat folder `vendor`.
+
+Jangan menutup terminal saat proses masih berjalan.
+
+### Langkah 3 - Buat File Konfigurasi `.env`
+
+Jalankan:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Jika muncul pesan bahwa `.env` sudah ada, jangan timpa file tersebut kecuali
+Anda memang ingin mengatur ulang konfigurasi lokal.
+
+LibraFlow sudah menggunakan SQLite secara default:
+
+```dotenv
+DB_CONNECTION=sqlite
+```
+
+Anda tidak perlu mengisi username atau password database untuk penggunaan
+lokal.
+
+### Langkah 4 - Buat Application Key
+
+Jalankan:
+
+```powershell
+php artisan key:generate
+```
+
+Perintah ini akan mengisi `APP_KEY` di dalam `.env`. Key digunakan Laravel
+untuk keamanan session dan data terenkripsi.
+
+### Langkah 5 - Buat File Database SQLite
+
+Jalankan:
+
+```powershell
+New-Item -ItemType File -Force database\database.sqlite
+```
+
+Database lokal tersimpan di:
+
+```text
+database\database.sqlite
+```
+
+### Langkah 6 - Buat Tabel dan Data Contoh
+
+Jalankan:
+
+```powershell
+php artisan migrate --seed
+```
+
+Perintah ini:
+
+- membuat seluruh tabel database;
+- membuat akun admin;
+- membuat kategori buku dan anggota;
+- membuat 20 buku beserta eksemplarnya;
+- membuat data anggota dan transaksi contoh.
+
+Jika sebelumnya database sudah pernah diisi, perintah ini tidak menghapus data
+yang ada.
+
+> **Peringatan:** Jangan menggunakan `php artisan migrate:fresh --seed` jika
+> ingin mempertahankan data. Perintah `migrate:fresh` menghapus seluruh tabel
+> dan data sebelum membuatnya kembali.
+
+### Langkah 7 - Pasang Dependency Frontend
+
+Jalankan:
+
+```powershell
+npm.cmd install
+```
+
+Mengapa memakai `npm.cmd`? Beberapa instalasi Windows memblokir `npm.ps1`,
+sedangkan `npm.cmd` biasanya tetap dapat dijalankan.
+
+Tunggu sampai folder `node_modules` selesai dibuat.
+
+### Langkah 8 - Build CSS dan JavaScript
+
+Jalankan:
+
+```powershell
+npm.cmd run build
+```
+
+Jika berhasil, Vite akan membuat asset production di folder `public\build`.
+
+### Langkah 9 - Jalankan Web Server Lokal
+
+Jalankan:
+
+```powershell
+php artisan serve
+```
+
+Terminal akan menampilkan alamat seperti:
+
+```text
+Server running on [http://127.0.0.1:8000]
+```
+
+Jangan tutup terminal ini selama aplikasi sedang digunakan.
+
+## 5. Membuka dan Login ke Aplikasi
+
+Buka browser seperti Chrome, Edge, atau Firefox, lalu kunjungi:
+
+```text
+http://127.0.0.1:8000
+```
+
+Halaman login staf:
+
+```text
+http://127.0.0.1:8000/login
+```
+
+Akun admin bawaan:
+
+| Data | Nilai |
+|---|---|
+| Email | `admin@libraflow.test` |
+| Username | `admin` |
+| Password | `password` |
+
+Anda dapat login menggunakan email **atau** username.
+
+Halaman penting:
+
+| Alamat | Fungsi |
+|---|---|
+| `/` | Landing page publik |
+| `/books/search` | Pencarian katalog publik |
+| `/member/register` | Pendaftaran anggota |
+| `/login` | Login admin atau pustakawan |
+| `/admin/dashboard` | Dashboard |
+| `/admin/books` | Pengelolaan buku |
+| `/admin/members` | Pengelolaan anggota |
+| `/admin/circulation` | Peminjaman dan pengembalian |
+| `/admin/transactions` | Riwayat transaksi |
+| `/admin/reports` | Laporan dan export CSV |
+
+## 6. Cara Menjalankan Lagi Besok
+
+Setelah instalasi pertama selesai, Anda tidak perlu mengulang semua langkah.
+
+Buka PowerShell:
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+php artisan serve
+```
+
+Kemudian buka:
+
+```text
+http://127.0.0.1:8000
+```
+
+Anda hanya perlu menjalankan `composer install` atau `npm.cmd install` lagi
+jika dependency project berubah.
+
+## 7. Cara Menghentikan Aplikasi
+
+Kembali ke terminal yang menjalankan:
+
+```powershell
+php artisan serve
+```
+
+Tekan:
+
+```text
+Ctrl + C
+```
+
+Menutup server tidak menghapus database atau data.
+
+## 8. Mode Development
+
+Gunakan mode ini jika Anda sedang mengubah tampilan, CSS, atau JavaScript.
+
+Buka **dua jendela PowerShell**.
+
+Terminal pertama:
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+php artisan serve
+```
+
+Terminal kedua:
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+npm.cmd run dev
+```
+
+Vite akan memantau perubahan file frontend secara otomatis. Biarkan kedua
+terminal tetap terbuka.
+
+Jika hanya ingin menggunakan aplikasinya tanpa mengubah source code, Anda tidak
+perlu menjalankan `npm.cmd run dev`. Cukup jalankan `npm.cmd run build` sekali,
+lalu `php artisan serve`.
+
+## 9. Perintah Penting
+
+### Menjalankan Test
+
+```powershell
+php artisan test
+```
+
+### Memeriksa Daftar Route
+
+```powershell
+php artisan route:list
+```
+
+### Memeriksa Format Kode PHP
+
+```powershell
+vendor\bin\pint.bat --test
+```
+
+### Membersihkan Cache Laravel
+
+Gunakan ini jika perubahan konfigurasi atau route belum terbaca:
+
+```powershell
+php artisan optimize:clear
+```
+
+### Membangun Ulang Frontend
+
+```powershell
+npm.cmd run build
+```
+
+### Mengisi Ulang Database dari Nol
+
+Hanya untuk development dan hanya jika data boleh dihapus:
+
+```powershell
+php artisan migrate:fresh --seed
+```
+
+## 10. Mengatasi Error Umum
+
+### Error: `php is not recognized`
+
+Artinya folder PHP belum masuk `PATH`.
+
+Pastikan folder berikut sudah masuk Environment Variables:
+
+```text
+C:\xampp\php
+```
+
+Tutup dan buka ulang PowerShell setelah mengubah `PATH`.
+
+### Error: `composer is not recognized`
+
+Composer belum terpasang atau terminal belum dibuka ulang setelah instalasi.
+Pasang Composer, lalu buka PowerShell baru.
+
+### Error: `npm.ps1 cannot be loaded`
+
+Gunakan:
+
+```powershell
+npm.cmd install
+npm.cmd run build
+```
+
+Anda tidak perlu mengubah Execution Policy Windows.
+
+### Error: `could not find driver`
+
+Ekstensi database PHP belum aktif. Jalankan:
+
+```powershell
+php -m | Select-String "pdo_sqlite"
+```
+
+Jika tidak ada hasil, aktifkan `pdo_sqlite` dan `sqlite3` pada `php.ini`.
+
+### Error: `No application encryption key has been specified`
+
+Jalankan:
+
+```powershell
+php artisan key:generate
+```
+
+### Error: `Vite manifest not found`
+
+Dependency frontend belum dibangun. Jalankan:
+
+```powershell
+npm.cmd install
+npm.cmd run build
+```
+
+### Error: `database.sqlite does not exist`
+
+Jalankan:
+
+```powershell
+New-Item -ItemType File -Force database\database.sqlite
+php artisan migrate --seed
+```
+
+### Error: `Address already in use`
+
+Port `8000` sedang dipakai aplikasi lain. Gunakan port berbeda:
+
+```powershell
+php artisan serve --port=8001
+```
+
+Kemudian buka:
+
+```text
+http://127.0.0.1:8001
+```
+
+### Tampilan Tidak Berubah
+
+Jalankan:
+
+```powershell
+php artisan optimize:clear
+npm.cmd run build
+```
+
+Lalu refresh browser dengan `Ctrl + F5`.
+
+### Ingin Mengulang Data Contoh
+
+Perintah berikut menghapus semua data lokal:
+
+```powershell
+php artisan migrate:fresh --seed
+```
+
+Jangan jalankan perintah ini pada server production.
+
+---
+
+## 11. Deployment ke Server Cloud
+
+Bagian ini menjelaskan deployment ke **VPS Ubuntu**. VPS lebih mudah dikontrol
+dan lebih cocok untuk Laravel dibanding shared hosting yang sangat terbatas.
+
+Contoh penyedia VPS: DigitalOcean, Vultr, Akamai/Linode, AWS Lightsail, Google
+Cloud, Azure, atau penyedia cloud lain. Nama menu tiap penyedia berbeda, tetapi
+konsepnya sama.
+
+Untuk production, gunakan:
+
+- Ubuntu 24.04 LTS;
+- minimal 1 GB RAM untuk penggunaan ringan;
+- Nginx;
+- PHP-FPM;
+- MySQL;
+- domain yang sudah diarahkan ke IP server;
+- HTTPS.
+
+### 11.1 Buat VPS
+
+Di dashboard penyedia cloud:
+
+1. Buat server baru dengan Ubuntu 24.04 LTS.
+2. Pilih lokasi server yang dekat dengan pengguna.
+3. Gunakan SSH key jika tersedia.
+4. Catat IP publik server.
+5. Jangan membagikan private SSH key atau password server.
+
+### 11.2 Hubungkan Domain
+
+Di pengelola DNS domain, buat record:
+
+```text
+Type: A
+Name: @
+Value: IP_SERVER
+```
+
+Untuk subdomain `www`, buat:
+
+```text
+Type: A
+Name: www
+Value: IP_SERVER
+```
+
+Perubahan DNS dapat memerlukan waktu beberapa menit hingga beberapa jam.
+
+### 11.3 Login ke Server
+
+Dari PowerShell komputer Anda:
+
+```powershell
+ssh root@IP_SERVER
+```
+
+Ganti `IP_SERVER` dengan IP VPS.
+
+Jika server menggunakan user lain:
+
+```powershell
+ssh nama_user@IP_SERVER
+```
+
+### 11.4 Update Server
+
+Di terminal server:
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+
+### 11.5 Pasang Nginx, PHP, MySQL, dan Git
+
+Ubuntu 24.04 menyediakan PHP 8.3, yang kompatibel dengan project ini.
+
+```bash
+sudo apt install -y nginx mysql-server git unzip curl \
+php8.3-fpm php8.3-cli php8.3-mysql php8.3-sqlite3 \
+php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath
+```
+
+Periksa:
+
+```bash
+php -v
+nginx -v
+mysql --version
+```
+
+### 11.6 Pasang Composer
+
+Ikuti installer resmi Composer, atau gunakan:
+
+```bash
+cd /tmp
+curl -sS https://getcomposer.org/installer -o composer-setup.php
+php composer-setup.php
+sudo mv composer.phar /usr/local/bin/composer
+composer --version
+```
+
+### 11.7 Pasang Node.js
+
+Pasang Node.js versi LTS menggunakan metode resmi NodeSource atau pengelola
+versi seperti `nvm`. Setelah selesai, periksa:
+
+```bash
+node --version
+npm --version
+```
+
+### 11.8 Buat Database MySQL
+
+Masuk ke MySQL:
+
+```bash
+sudo mysql
+```
+
+Jalankan SQL berikut. Ganti password contoh dengan password yang kuat dan unik:
+
+```sql
+CREATE DATABASE libraflow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'libraflow_user'@'localhost' IDENTIFIED BY 'GANTI_DENGAN_PASSWORD_KUAT';
+GRANT ALL PRIVILEGES ON libraflow.* TO 'libraflow_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+Jangan memakai password contoh secara literal.
+
+### 11.9 Upload Source Code
+
+Contoh menggunakan Git:
+
+```bash
+cd /var/www
+sudo git clone URL_REPOSITORY_ANDA library-management
+sudo chown -R $USER:www-data /var/www/library-management
+cd /var/www/library-management
+```
+
+Ganti `URL_REPOSITORY_ANDA` dengan URL repository project.
+
+Jika repository bersifat private, gunakan deploy key atau mekanisme autentikasi
+yang disediakan Git hosting. Jangan menulis token langsung di README atau
+source code.
+
+### 11.10 Pasang Dependency Production
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci
+npm run build
+```
+
+### 11.11 Buat `.env` Production
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+Contoh konfigurasi penting:
+
+```dotenv
+APP_NAME=LibraFlow
+APP_ENV=production
+APP_KEY=
+APP_DEBUG=false
+APP_URL=https://domainanda.com
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=libraflow
+DB_USERNAME=libraflow_user
+DB_PASSWORD=GANTI_DENGAN_PASSWORD_DATABASE
+
+SESSION_DRIVER=database
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+```
+
+Ganti:
+
+- `domainanda.com` dengan domain Anda;
+- `GANTI_DENGAN_PASSWORD_DATABASE` dengan password MySQL;
+- jangan mengirim isi `.env` kepada orang lain.
+
+Simpan Nano dengan `Ctrl + O`, tekan Enter, lalu keluar dengan `Ctrl + X`.
+
+Buat application key:
+
+```bash
+php artisan key:generate
+```
+
+### 11.12 Jalankan Migration
+
+```bash
+php artisan migrate --force
+```
+
+Untuk production baru yang memang membutuhkan data contoh:
+
+```bash
+php artisan db:seed --force
+```
+
+Seeder membuat akun admin dengan password default `password`. Segera ganti
+password tersebut sebelum aplikasi dibuka untuk publik. Untuk production nyata,
+lebih baik membuat data awal secara terkontrol dan tidak mempertahankan data
+dummy.
+
+### 11.13 Atur Permission
+
+```bash
+sudo chown -R www-data:www-data /var/www/library-management/storage
+sudo chown -R www-data:www-data /var/www/library-management/bootstrap/cache
+sudo chmod -R 775 /var/www/library-management/storage
+sudo chmod -R 775 /var/www/library-management/bootstrap/cache
+```
+
+Folder source lain tidak perlu diberi permission `777`.
+
+### 11.14 Konfigurasi Nginx
+
+Buat konfigurasi:
+
+```bash
+sudo nano /etc/nginx/sites-available/libraflow
+```
+
+Masukkan:
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name domainanda.com www.domainanda.com;
+    root /var/www/library-management/public;
+
+    index index.php;
+
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico {
+        access_log off;
+        log_not_found off;
+    }
+
+    location = /robots.txt {
+        access_log off;
+        log_not_found off;
+    }
+
+    error_page 404 /index.php;
+
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+```
+
+Ganti nama domain, lalu aktifkan konfigurasi:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/libraflow /etc/nginx/sites-enabled/libraflow
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Jika `nginx -t` menampilkan error, jangan reload sebelum error diperbaiki.
+
+### 11.15 Cache Laravel untuk Production
+
+```bash
+cd /var/www/library-management
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+### 11.16 Aktifkan HTTPS
+
+Pasang Certbot:
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+Jalankan:
+
+```bash
+sudo certbot --nginx -d domainanda.com -d www.domainanda.com
+```
+
+Ikuti petunjuk di layar. Pilih redirect HTTP ke HTTPS jika ditawarkan.
+
+Periksa pembaruan sertifikat:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+### 11.17 Pemeriksaan Setelah Deployment
+
+Buka:
+
+```text
+https://domainanda.com
+```
+
+Periksa:
+
+- landing page terbuka;
+- HTTPS aktif;
+- login admin bekerja;
+- tambah buku bekerja;
+- registrasi dan approval anggota bekerja;
+- issue dan return bekerja;
+- export CSV bekerja;
+- `APP_DEBUG=false`;
+- tidak ada file `.env` yang dapat dibuka dari browser.
+
+## 12. Update Aplikasi di Server
+
+Ketika ada versi source code baru:
+
+```bash
+cd /var/www/library-management
+php artisan down
+git pull
+composer install --no-dev --optimize-autoloader
+npm ci
+npm run build
+php artisan migrate --force
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan up
+```
+
+Sebelum update production:
+
+1. backup database;
+2. pastikan perubahan sudah diuji di lokal;
+3. baca migration baru;
+4. jangan menggunakan `git reset --hard` atau `migrate:fresh`.
+
+Jika `git pull` gagal karena ada perubahan manual di server, jangan langsung
+menghapus perubahan. Periksa dahulu dengan:
+
+```bash
+git status
+```
+
+## 13. Backup dan Keamanan
+
+### Backup MySQL
+
+```bash
+mysqldump -u libraflow_user -p libraflow > libraflow-backup-$(date +%F).sql
+```
+
+File backup mengandung data sensitif. Simpan di tempat aman dan jangan masukkan
+ke repository Git.
+
+Restore backup:
+
+```bash
+mysql -u libraflow_user -p libraflow < nama-file-backup.sql
+```
+
+### Jika Memakai SQLite di Server
+
+SQLite dapat digunakan untuk server kecil, tetapi MySQL lebih disarankan untuk
+banyak pengguna dan banyak proses tulis.
+
+File yang harus dibackup:
+
+```text
+database/database.sqlite
+```
+
+Pastikan file tersebut dapat ditulis oleh user web server, tetapi tidak dapat
+diunduh dari internet.
+
+### Checklist Keamanan
+
+- Gunakan `APP_ENV=production`.
+- Gunakan `APP_DEBUG=false`.
+- Gunakan HTTPS.
+- Ganti password admin default.
+- Gunakan password database yang kuat.
+- Jangan commit `.env`.
+- Jangan menyimpan API key, token, SSH key, atau password di source code.
+- Batasi akses SSH dan gunakan SSH key.
+- Update paket server secara berkala.
+- Backup database secara rutin dan uji proses restore.
+- Jangan memberi permission `777` ke seluruh project.
+
+## 14. Struktur dan Arsitektur Project
+
+Teknologi utama:
+
+- PHP 8.2+
+- Laravel 12
+- Blade
+- Tailwind CSS 4
+- Alpine.js
+- Vite
+- SQLite untuk development
+- MySQL direkomendasikan untuk production
+
+Laravel 11 awalnya diminta pada spesifikasi. Namun, dukungan security Laravel 11
+berakhir pada 12 Maret 2026 dan Composer memblokir seri tersebut karena
+security advisory aktif. Project menggunakan Laravel 12 agar tetap menerima
+perbaikan keamanan.
+
+Struktur penting:
+
+```text
+app/
+  Http/Controllers/    Menerima request dan mengembalikan response
+  Http/Middleware/     Memastikan akun staf aktif
+  Http/Requests/       Validasi input dari pengguna
+  Models/              Model dan relasi database
+  Services/            Business logic buku, anggota, sirkulasi, dan laporan
+database/
+  factories/           Pembuat data untuk test
+  migrations/          Struktur tabel dan index database
+  seeders/             Data awal dan data contoh
+resources/
+  views/               Halaman Blade publik dan admin
+  css/                 Tailwind CSS
+  js/                  Alpine.js, dark mode, dan sidebar
+routes/
+  web.php              Daftar URL aplikasi
+tests/
+  Feature/LibraFlow/   Automated feature test
+```
+
+Alur peminjaman dan pengembalian menggunakan database transaction, row lock,
+validasi ulang state terbaru, conditional update, dan rollback. Perlindungan
+ini mencegah double-click atau request berulang membuat transaksi ganda dan
+counter yang tidak konsisten.
+
+## Checklist Test Manual
+
+Setelah setup lokal atau deployment:
+
+- login menggunakan email;
+- login menggunakan username;
+- cari buku berdasarkan judul, author, ISBN, dan kategori;
+- daftar sebagai anggota;
+- approve atau reject anggota;
+- tambah buku dan periksa kode eksemplar;
+- tambah eksemplar tanpa menghapus eksemplar lama;
+- ubah status eksemplar ke maintenance;
+- pinjamkan buku kepada anggota approved;
+- coba submit peminjaman yang sama dua kali;
+- kembalikan buku;
+- periksa badge overdue;
+- filter riwayat transaksi;
+- download CSV buku dan transaksi;
+- periksa sidebar di layar mobile;
+- periksa dark mode setelah browser dibuka ulang.
+
+## Pengembangan Berikutnya
+
+- Role dan policy yang lebih rinci
+- Denda keterlambatan
+- Reservasi dan waiting list
+- Barcode atau QR scanner
+- Email atau WhatsApp pengingat jatuh tempo
+- Audit log aktivitas staf
+- Upload cover buku
+- Scheduled overdue synchronization
+- Backup otomatis

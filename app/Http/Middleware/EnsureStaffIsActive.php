@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Models\User;
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureStaffIsActive
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = $request->user();
+
+        if (! $user || ! $user->is_active || ! in_array($user->role, [User::ROLE_ADMIN, User::ROLE_LIBRARIAN], true)) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'login' => 'Your staff account is not authorized or active.',
+            ]);
+        }
+
+        return $next($request);
+    }
+}
