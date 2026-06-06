@@ -39,8 +39,47 @@
             <div class="divide-y divide-slate-100 dark:divide-slate-800">@forelse ($recentTransactions as $transaction)<a href="{{ route('admin.transactions.show', $transaction) }}" class="flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800"><div><p class="font-semibold">{{ $transaction->member->full_name }}</p><p class="text-xs text-slate-500">{{ $transaction->transaction_code }} · {{ $transaction->bookCopy->copy_code }}</p></div><x-badge :status="$transaction->display_status" /></a>@empty<p class="p-5 text-sm text-slate-500">No transactions for this book.</p>@endforelse</div>
         </section>
     </div>
-    <aside>
+    <aside class="space-y-6">
         <form method="POST" action="{{ route('admin.books.copies.store', $book) }}" class="panel p-5">@csrf<h2 class="font-bold">Add physical copies</h2><p class="mt-1 text-sm text-slate-500">Existing copies remain unchanged.</p><div class="mt-5"><label class="label">Number of copies</label><input class="input" type="number" min="1" max="200" name="number_of_copies" value="1" required></div><div class="mt-4"><label class="label">Shelf location</label><input class="input" name="shelf_location" placeholder="Example: A-12"></div><button class="btn-primary mt-5 w-full">Generate copies</button></form>
+        @if (auth()->user()->isAdmin())
+            <section class="panel p-5">
+                <h2 class="font-bold">Kelola buku digital</h2>
+                <p class="mt-1 text-sm text-slate-500">PDF asli disimpan privat dan dirender menjadi gambar halaman.</p>
+
+                @if ($book->digitalAsset)
+                    <div class="mt-5 rounded-xl border border-slate-200 p-4 text-sm dark:border-slate-700">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="font-bold capitalize">{{ $book->digitalAsset->status }}</span>
+                            <span class="text-xs text-slate-500">{{ number_format($book->digitalAsset->file_size / 1024, 1) }} KB</span>
+                        </div>
+                        <p class="mt-2 break-all text-xs text-slate-500">{{ $book->digitalAsset->original_name }}</p>
+                        @if ($book->digitalAsset->isReady())
+                            <p class="mt-2 text-xs text-emerald-600">{{ $book->digitalAsset->page_count }} halaman siap dibaca.</p>
+                        @elseif ($book->digitalAsset->status === \App\Models\DigitalBookAsset::STATUS_FAILED)
+                            <p class="mt-2 break-words text-xs text-red-600">{{ $book->digitalAsset->last_error }}</p>
+                        @else
+                            <p class="mt-2 text-xs text-amber-600">Menunggu atau sedang diproses oleh queue worker.</p>
+                        @endif
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('admin.books.digital.store', $book) }}" enctype="multipart/form-data" class="mt-5">
+                    @csrf
+                    <label class="label">{{ $book->digitalAsset ? 'Ganti file PDF' : 'Upload file PDF' }}</label>
+                    <input class="input" type="file" name="pdf" accept="application/pdf,.pdf" required>
+                    <x-field-error name="pdf" />
+                    <button class="btn-primary mt-4 w-full">{{ $book->digitalAsset ? 'Ganti dan render ulang' : 'Upload dan render' }}</button>
+                </form>
+
+                @if ($book->digitalAsset)
+                    <form method="POST" action="{{ route('admin.books.digital.destroy', [$book, $book->digitalAsset]) }}" class="mt-3" onsubmit="return confirm('Hapus buku digital dan semua gambar privatnya?')">
+                        @csrf
+                        @method('DELETE')
+                        <button class="w-full rounded-xl border border-red-300 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">Hapus buku digital</button>
+                    </form>
+                @endif
+            </section>
+        @endif
     </aside>
 </div>
 @endsection

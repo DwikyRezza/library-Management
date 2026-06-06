@@ -3,7 +3,9 @@
 LibraFlow adalah aplikasi web untuk mengelola perpustakaan. Aplikasi ini
 memiliki katalog buku publik, pendaftaran anggota, persetujuan anggota,
 pengelolaan buku dan eksemplar, peminjaman, pengembalian, status terlambat,
-riwayat transaksi, laporan, dan export CSV.
+riwayat transaksi, laporan, export CSV, serta pembaca buku digital privat untuk
+member. PDF tidak dikirim langsung ke browser: server merendernya menjadi
+gambar per halaman dan menambahkan watermark identitas pembaca.
 
 Dokumen ini ditulis untuk pemula. Ikuti langkahnya dari atas ke bawah. Jangan
 melewati langkah kecuali tertulis opsional.
@@ -13,8 +15,8 @@ melewati langkah kecuali tertulis opsional.
 Pada komputer dan folder project ini, dependency, database, dan asset frontend
 sudah tersedia. Untuk membuka web sekarang:
 
-1. Buka PowerShell.
-2. Jalankan:
+1. Buka PowerShell pertama.
+2. Jalankan web server:
 
 ```powershell
 cd "D:\Rezza\Self Project\library-management"
@@ -22,13 +24,23 @@ php artisan serve
 ```
 
 3. Jangan tutup PowerShell tersebut.
-4. Buka browser dan kunjungi:
+4. Buka PowerShell kedua, lalu jalankan queue worker:
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+php artisan queue:work --tries=3 --timeout=660
+```
+
+Queue worker wajib hidup agar PDF yang di-upload admin dapat dirender menjadi
+gambar halaman.
+
+5. Buka browser dan kunjungi:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-5. Untuk masuk sebagai admin, buka:
+6. Untuk masuk sebagai admin, buka:
 
 ```text
 http://127.0.0.1:8000/login
@@ -61,6 +73,7 @@ bagian [Program yang Harus Dipasang](#2-program-yang-harus-dipasang).
 12. [Update Aplikasi di Server](#12-update-aplikasi-di-server)
 13. [Backup dan Keamanan](#13-backup-dan-keamanan)
 14. [Struktur dan Arsitektur Project](#14-struktur-dan-arsitektur-project)
+15. [Cara Menggunakan Buku Digital](#15-cara-menggunakan-buku-digital)
 
 ---
 
@@ -306,6 +319,18 @@ Server running on [http://127.0.0.1:8000]
 
 Jangan tutup terminal ini selama aplikasi sedang digunakan.
 
+### Langkah 10 - Jalankan Queue Worker
+
+Buka PowerShell baru. Jangan menghentikan web server pada terminal pertama.
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+php artisan queue:work --tries=3 --timeout=660
+```
+
+Biarkan terminal kedua tetap terbuka. Ketika admin meng-upload PDF, worker ini
+menjalankan PDF.js untuk membuat PNG privat per halaman.
+
 ## 5. Membuka dan Login ke Aplikasi
 
 Buka browser seperti Chrome, Edge, atau Firefox, lalu kunjungi:
@@ -337,6 +362,7 @@ Halaman penting:
 | `/` | Landing page publik |
 | `/books/search` | Pencarian katalog publik |
 | `/member/register` | Pendaftaran anggota |
+| `/member/login` | Login pembaca menggunakan username atau email |
 | `/login` | Login admin atau pustakawan |
 | `/admin/dashboard` | Dashboard |
 | `/admin/books` | Pengelolaan buku |
@@ -344,16 +370,30 @@ Halaman penting:
 | `/admin/circulation` | Peminjaman dan pengembalian |
 | `/admin/transactions` | Riwayat transaksi |
 | `/admin/reports` | Laporan dan export CSV |
+| `/admin/reading-history` | Riwayat baca digital, hanya admin |
+
+Member baru dapat langsung login dan membaca buku digital meskipun statusnya
+masih pending. Status approval tetap diperlukan untuk meminjam buku fisik.
+Member rejected tidak dapat login atau membaca.
 
 ## 6. Cara Menjalankan Lagi Besok
 
 Setelah instalasi pertama selesai, Anda tidak perlu mengulang semua langkah.
 
-Buka PowerShell:
+Buka dua PowerShell.
+
+Terminal pertama:
 
 ```powershell
 cd "D:\Rezza\Self Project\library-management"
 php artisan serve
+```
+
+Terminal kedua:
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+php artisan queue:work --tries=3 --timeout=660
 ```
 
 Kemudian buka:
@@ -367,13 +407,13 @@ jika dependency project berubah.
 
 ## 7. Cara Menghentikan Aplikasi
 
-Kembali ke terminal yang menjalankan:
+Kembali ke setiap terminal yang menjalankan web server atau queue worker.
 
 ```powershell
 php artisan serve
 ```
 
-Tekan:
+Tekan pada masing-masing terminal:
 
 ```text
 Ctrl + C
@@ -385,7 +425,7 @@ Menutup server tidak menghapus database atau data.
 
 Gunakan mode ini jika Anda sedang mengubah tampilan, CSS, atau JavaScript.
 
-Buka **dua jendela PowerShell**.
+Buka **tiga jendela PowerShell**.
 
 Terminal pertama:
 
@@ -401,7 +441,14 @@ cd "D:\Rezza\Self Project\library-management"
 npm.cmd run dev
 ```
 
-Vite akan memantau perubahan file frontend secara otomatis. Biarkan kedua
+Terminal ketiga:
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+php artisan queue:work --tries=3 --timeout=660
+```
+
+Vite akan memantau perubahan file frontend secara otomatis. Biarkan ketiga
 terminal tetap terbuka.
 
 Jika hanya ingin menggunakan aplikasinya tanpa mengubah source code, Anda tidak
@@ -540,6 +587,28 @@ npm.cmd run build
 ```
 
 Lalu refresh browser dengan `Ctrl + F5`.
+
+### PDF Terus Berstatus `processing`
+
+Queue worker belum berjalan. Buka PowerShell baru dan jalankan:
+
+```powershell
+cd "D:\Rezza\Self Project\library-management"
+php artisan queue:work --tries=3 --timeout=660
+```
+
+### PDF Berstatus `failed`
+
+Pastikan Node.js dan dependency renderer tersedia:
+
+```powershell
+node --version
+npm.cmd install
+```
+
+Lihat pesan error pada panel **Kelola buku digital** di detail buku. PDF yang
+terenkripsi password, rusak, atau tidak valid dapat gagal dirender. Setelah
+penyebabnya diperbaiki, upload ulang PDF tersebut.
 
 ### Ingin Mengulang Data Contoh
 
@@ -782,7 +851,46 @@ sudo chmod -R 775 /var/www/library-management/bootstrap/cache
 
 Folder source lain tidak perlu diberi permission `777`.
 
-### 11.14 Konfigurasi Nginx
+### 11.14 Jalankan Queue Worker dengan Supervisor
+
+PDF diproses asynchronous, jadi production wajib memiliki worker yang selalu
+hidup. Pasang Supervisor:
+
+```bash
+sudo apt install -y supervisor
+sudo nano /etc/supervisor/conf.d/libraflow-worker.conf
+```
+
+Isi file:
+
+```ini
+[program:libraflow-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/library-management/artisan queue:work --sleep=2 --tries=3 --timeout=660
+directory=/var/www/library-management
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/var/www/library-management/storage/logs/worker.log
+stopwaitsecs=700
+```
+
+Aktifkan worker:
+
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start libraflow-worker:*
+sudo supervisorctl status
+```
+
+Status worker harus `RUNNING`.
+
+### 11.15 Konfigurasi Nginx
 
 Buat konfigurasi:
 
@@ -843,7 +951,7 @@ sudo systemctl reload nginx
 
 Jika `nginx -t` menampilkan error, jangan reload sebelum error diperbaiki.
 
-### 11.15 Cache Laravel untuk Production
+### 11.16 Cache Laravel untuk Production
 
 ```bash
 cd /var/www/library-management
@@ -852,7 +960,7 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-### 11.16 Aktifkan HTTPS
+### 11.17 Aktifkan HTTPS
 
 Pasang Certbot:
 
@@ -874,7 +982,7 @@ Periksa pembaruan sertifikat:
 sudo certbot renew --dry-run
 ```
 
-### 11.17 Pemeriksaan Setelah Deployment
+### 11.18 Pemeriksaan Setelah Deployment
 
 Buka:
 
@@ -891,6 +999,10 @@ Periksa:
 - registrasi dan approval anggota bekerja;
 - issue dan return bekerja;
 - export CSV bekerja;
+- admin dapat upload PDF dan status berubah dari `processing` menjadi `ready`;
+- member dapat membaca gambar halaman ber-watermark;
+- librarian tidak dapat membuka `/admin/reading-history`;
+- worker Supervisor berstatus `RUNNING`;
 - `APP_DEBUG=false`;
 - tidak ada file `.env` yang dapat dibuka dari browser.
 
@@ -910,6 +1022,7 @@ php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+php artisan queue:restart
 php artisan up
 ```
 
@@ -953,6 +1066,7 @@ File yang harus dibackup:
 
 ```text
 database/database.sqlite
+storage/app/private/digital-books
 ```
 
 Pastikan file tersebut dapat ditulis oleh user web server, tetapi tidak dapat
@@ -971,6 +1085,11 @@ diunduh dari internet.
 - Update paket server secara berkala.
 - Backup database secara rutin dan uji proses restore.
 - Jangan memberi permission `777` ke seluruh project.
+- Hanya upload PDF yang hak distribusinya dimiliki perpustakaan.
+- Batasi akses backup karena berisi data member dan dokumen buku.
+- Web tidak dapat menjamin pemblokiran screenshot perangkat. Proteksi
+  LibraFlow adalah storage privat, gambar per halaman, watermark identitas,
+  penghambat aksi browser umum, dan audit sesi.
 
 ## 14. Struktur dan Arsitektur Project
 
@@ -982,6 +1101,7 @@ Teknologi utama:
 - Tailwind CSS 4
 - Alpine.js
 - Vite
+- PDF.js dan `@napi-rs/canvas`
 - SQLite untuk development
 - MySQL direkomendasikan untuk production
 
@@ -994,6 +1114,8 @@ Struktur penting:
 
 ```text
 app/
+  Contracts/           Kontrak renderer PDF dan watermark
+  Jobs/                Job queue render buku digital
   Http/Controllers/    Menerima request dan mengembalikan response
   Http/Middleware/     Memastikan akun staf aktif
   Http/Requests/       Validasi input dari pengguna
@@ -1009,6 +1131,9 @@ resources/
   js/                  Alpine.js, dark mode, dan sidebar
 routes/
   web.php              Daftar URL aplikasi
+scripts/
+  render-pdf.mjs       Mengubah PDF privat menjadi PNG
+  watermark-page.mjs   Menambahkan watermark identitas member
 tests/
   Feature/LibraFlow/   Automated feature test
 ```
@@ -1038,6 +1163,47 @@ Setelah setup lokal atau deployment:
 - download CSV buku dan transaksi;
 - periksa sidebar di layar mobile;
 - periksa dark mode setelah browser dibuka ulang.
+- daftar member dengan username dan password;
+- login member menggunakan username dan email;
+- upload PDF sebagai admin dan jalankan queue worker;
+- pastikan tombol baca hanya muncul setelah status `ready`;
+- baca beberapa halaman dan periksa watermark;
+- pastikan member rejected tidak dapat membaca;
+- periksa riwayat baca sebagai admin;
+- pastikan librarian mendapat 403 saat membuka riwayat baca.
+
+## 15. Cara Menggunakan Buku Digital
+
+### Sebagai Admin
+
+1. Login melalui `/login`.
+2. Buka menu **Books**.
+3. Pilih satu buku.
+4. Pada panel **Kelola buku digital**, pilih file PDF.
+5. Klik **Upload dan render**.
+6. Pastikan queue worker sedang berjalan.
+7. Tunggu status berubah dari `processing` menjadi `ready`.
+
+PDF asli disimpan di `storage/app/private` dan tidak memiliki URL publik.
+
+### Sebagai Member
+
+1. Daftar melalui `/member/register`.
+2. Login melalui `/member/login` dengan username atau email.
+3. Buka katalog `/books/search`.
+4. Klik **Baca online** pada buku yang siap.
+5. Gunakan tombol **Sebelumnya** dan **Berikutnya**.
+
+Setiap sesi menyimpan halaman terakhir, durasi aktif, IP, dan user agent.
+Informasi tersebut hanya dapat dilihat admin.
+
+### Tentang Screenshot
+
+JavaScript web dapat menghambat klik kanan, drag, copy, print, dan shortcut
+simpan. Namun browser tidak memiliki izin untuk mengunci screenshot Android,
+iPhone, Windows, atau kamera eksternal secara mutlak. Karena itu setiap halaman
+diberi watermark nama, kode member, email, dan waktu sesi agar penyalahgunaan
+dapat ditelusuri.
 
 ## Pengembangan Berikutnya
 

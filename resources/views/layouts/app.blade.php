@@ -30,10 +30,15 @@
                 <button type="button" @click="toggleTheme()" class="grid size-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" aria-label="Toggle color theme">
                     <span x-text="dark ? 'Light' : 'Dark'" class="text-[10px] font-bold"></span>
                 </button>
-                @auth
+                @auth('member')
+                    <form method="POST" action="{{ route('member.logout') }}">
+                        @csrf
+                        <button class="btn-secondary">Keluar member</button>
+                    </form>
+                @elseauth
                     <a href="{{ route('admin.dashboard') }}" class="btn-primary">Dashboard</a>
                 @else
-                    <a href="{{ route('login') }}" class="btn-primary">Staff login</a>
+                    <a href="{{ route('member.login') }}" class="btn-primary">Login member</a>
                 @endauth
             </nav>
         </div>

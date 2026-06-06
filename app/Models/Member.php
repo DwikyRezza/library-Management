@@ -5,14 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-class Member extends Model
+class Member extends Authenticatable
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes;
 
     public const STATUS_PENDING = 'pending';
 
@@ -22,9 +23,11 @@ class Member extends Model
 
     protected $fillable = [
         'member_code',
+        'username',
         'first_name',
         'last_name',
         'email',
+        'password',
         'phone',
         'roll_number',
         'branch_id',
@@ -44,6 +47,12 @@ class Member extends Model
         'rejected_at' => 'datetime',
         'books_borrowed_count' => 'integer',
         'year' => 'integer',
+        'password' => 'hashed',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
 
     public function branch(): BelongsTo
@@ -64,6 +73,11 @@ class Member extends Model
     public function activeTransactions(): HasMany
     {
         return $this->transactions()->active();
+    }
+
+    public function readingSessions(): HasMany
+    {
+        return $this->hasMany(ReadingSession::class);
     }
 
     public function fullName(): Attribute
@@ -93,6 +107,11 @@ class Member extends Model
         return $this->approved
             && ! $this->rejected
             && $this->books_borrowed_count < $this->memberCategory->max_books;
+    }
+
+    public function canReadDigitalBooks(): bool
+    {
+        return ! $this->rejected;
     }
 
     public function scopeSearch(Builder $query, ?string $term): Builder

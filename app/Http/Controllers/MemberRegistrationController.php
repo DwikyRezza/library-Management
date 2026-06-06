@@ -24,7 +24,7 @@ class MemberRegistrationController extends Controller
         $memberService->register($request->validated());
 
         return redirect()
-            ->route('member.register')
-            ->with('success', 'Registration received. A librarian will review your membership.');
+            ->route('member.login')
+            ->with('success', 'Registrasi berhasil. Anda sudah dapat login untuk membaca buku digital.');
     }
 }

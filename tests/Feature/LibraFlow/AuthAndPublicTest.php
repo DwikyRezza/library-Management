@@ -97,7 +97,10 @@ class AuthAndPublicTest extends TestCase
         $response = $this->post('/member/register', [
             'first_name' => 'Rani',
             'last_name' => 'Permata',
+            'username' => 'rani.permata',
             'email' => 'rani@example.test',
+            'password' => 'very-secret-password',
+            'password_confirmation' => 'very-secret-password',
             'phone' => '08123456789',
             'roll_number' => 'STU-2026-999',
             'branch_id' => $branch->id,
@@ -105,7 +108,7 @@ class AuthAndPublicTest extends TestCase
             'member_category_id' => $memberCategory->id,
         ]);
 
-        $response->assertRedirect('/member/register');
+        $response->assertRedirect('/member/login');
         $this->assertDatabaseHas('members', [
             'email' => 'rani@example.test',
             'approved' => false,

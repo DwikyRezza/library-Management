@@ -50,6 +50,9 @@
                             <h3 class="mt-3 line-clamp-2 font-bold">{{ $book->title }}</h3>
                             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ $book->author }}</p>
                             <p class="mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400">{{ $book->category->name }}</p>
+                            @if ($book->digitalAsset?->isReady())
+                                <a href="{{ route('member.reader.open', $book) }}" class="mt-3 inline-flex text-sm font-bold text-emerald-600 dark:text-emerald-400">Baca online</a>
+                            @endif
                         </div>
                     </div>
                 </article>

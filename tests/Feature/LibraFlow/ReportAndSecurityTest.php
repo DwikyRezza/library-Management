@@ -9,11 +9,18 @@ use App\Models\BorrowTransaction;
 use App\Models\Member;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class ReportAndSecurityTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_private_local_storage_has_no_automatic_file_route(): void
+    {
+        $this->assertFalse(Route::has('storage.local'));
+        $this->assertFalse(Route::has('storage.local.upload'));
+    }
 
     public function test_authenticated_staff_can_view_reports_and_export_books(): void
     {

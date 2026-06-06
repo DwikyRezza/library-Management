@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Middleware\EnsureMemberCanRead;
 use App\Http\Middleware\EnsureStaffIsActive;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,8 +15,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->redirectGuestsTo('/login');
+        $middleware->redirectGuestsTo(
+            fn (Request $request): string => $request->routeIs('member.reader.*', 'member.logout')
+                ? route('member.login')
+                : route('login')
+        );
         $middleware->alias([
+            'admin.only' => EnsureUserIsAdmin::class,
+            'member.reader' => EnsureMemberCanRead::class,
             'staff.active' => EnsureStaffIsActive::class,
         ]);
     })

@@ -2,6 +2,14 @@
 
 return [
 
+    'digital_reader' => [
+        'node_binary' => env('PDF_RENDER_NODE_BINARY', 'node'),
+        'render_scale' => env('PDF_RENDER_SCALE', 1.6),
+        'render_timeout' => env('PDF_RENDER_TIMEOUT', 600),
+        'watermark_timeout' => env('PDF_WATERMARK_TIMEOUT', 60),
+        'heartbeat_cap' => env('READER_HEARTBEAT_CAP', 60),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

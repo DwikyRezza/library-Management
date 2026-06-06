@@ -17,7 +17,9 @@ class MemberService
                 ...Arr::only($data, [
                     'first_name',
                     'last_name',
+                    'username',
                     'email',
+                    'password',
                     'phone',
                     'roll_number',
                     'branch_id',

@@ -38,6 +38,9 @@
                 ['admin.transactions.index', 'Transactions', 'History'],
                 ['admin.reports.index', 'Reports', 'Insights'],
             ];
+            if (auth()->user()->isAdmin()) {
+                $links[] = ['admin.reading-history.index', 'Reading history', 'Admin only'];
+            }
         @endphp
         <nav class="flex-1 space-y-1 overflow-y-auto px-4 py-6">
             @foreach ($links as [$routeName, $label, $hint])

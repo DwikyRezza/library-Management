@@ -16,9 +16,11 @@ class MemberFactory extends Factory
     {
         return [
             'member_code' => 'MBR-'.fake()->unique()->numerify('#####'),
+            'username' => fake()->unique()->userName(),
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
+            'password' => 'password',
             'phone' => fake()->optional()->phoneNumber(),
             'roll_number' => fake()->unique()->bothify('STU-####'),
             'branch_id' => Branch::factory(),

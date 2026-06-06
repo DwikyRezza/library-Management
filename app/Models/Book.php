@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -57,6 +58,16 @@ class Book extends Model
     public function transactions(): HasManyThrough
     {
         return $this->hasManyThrough(BorrowTransaction::class, BookCopy::class);
+    }
+
+    public function digitalAsset(): HasOne
+    {
+        return $this->hasOne(DigitalBookAsset::class);
+    }
+
+    public function readingSessions(): HasMany
+    {
+        return $this->hasMany(ReadingSession::class);
     }
 
     public function scopeSearch(Builder $query, ?string $term): Builder

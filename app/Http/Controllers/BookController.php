@@ -57,6 +57,7 @@ class BookController extends Controller
         $book->load([
             'category',
             'copies' => fn ($query) => $query->orderBy('copy_code'),
+            'digitalAsset.uploader',
         ]);
 
         $recentTransactions = $book->transactions()

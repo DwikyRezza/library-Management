@@ -13,7 +13,7 @@ class PublicBookController extends Controller
     {
         return view('public.home', [
             'featuredBooks' => Book::query()
-                ->with('category')
+                ->with(['category', 'digitalAsset'])
                 ->orderByDesc('available_copies')
                 ->latest()
                 ->limit(6)
@@ -32,7 +32,7 @@ class PublicBookController extends Controller
         ]);
 
         $books = Book::query()
-            ->with('category')
+            ->with(['category', 'digitalAsset'])
             ->search($filters['q'] ?? null)
             ->when($filters['category'] ?? null, fn ($query, $category) => $query->where('category_id', $category))
             ->orderBy('title')
