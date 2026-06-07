@@ -15,9 +15,12 @@ class RenderDigitalBook implements ShouldQueue
 
     public int $tries = 3;
 
-    public int $timeout = 660;
+    public int $timeout;
 
-    public function __construct(public int $assetId) {}
+    public function __construct(public int $assetId)
+    {
+        $this->timeout = (int) config('services.digital_reader.job_timeout', 660);
+    }
 
     public function handle(PdfPageRenderer $renderer): void
     {

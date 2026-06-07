@@ -6,6 +6,7 @@ return [
         'node_binary' => env('PDF_RENDER_NODE_BINARY', 'node'),
         'render_scale' => env('PDF_RENDER_SCALE', 1.6),
         'render_timeout' => env('PDF_RENDER_TIMEOUT', 600),
+        'job_timeout' => env('PDF_JOB_TIMEOUT', 660),
         'watermark_timeout' => env('PDF_WATERMARK_TIMEOUT', 60),
         'heartbeat_cap' => env('READER_HEARTBEAT_CAP', 60),
     ],

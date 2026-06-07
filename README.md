@@ -624,22 +624,19 @@ Jangan jalankan perintah ini pada server production.
 
 ## 11. Deployment ke Server Cloud
 
-Bagian ini menjelaskan deployment ke **VPS Ubuntu**. VPS lebih mudah dikontrol
-dan lebih cocok untuk Laravel dibanding shared hosting yang sangat terbatas.
-
-Contoh penyedia VPS: DigitalOcean, Vultr, Akamai/Linode, AWS Lightsail, Google
-Cloud, Azure, atau penyedia cloud lain. Nama menu tiap penyedia berbeda, tetapi
-konsepnya sama.
+Bagian ini menjelaskan deployment production ke satu **AWS EC2 Ubuntu**. Nginx,
+PHP-FPM, MySQL, queue worker, dan renderer Node.js berjalan pada instance yang
+sama.
 
 Untuk production, gunakan:
 
 - Ubuntu 24.04 LTS;
-- minimal 1 GB RAM untuk penggunaan ringan;
+- minimal 2 GB RAM karena MySQL dan renderer PDF berjalan di server yang sama;
+- Elastic IP agar alamat publik tidak berubah ketika instance dihentikan;
 - Nginx;
 - PHP-FPM;
 - MySQL;
-- domain yang sudah diarahkan ke IP server;
-- HTTPS.
+- HTTPS sebelum login atau data anggota dibuka ke publik.
 
 ### 11.1 Buat VPS
 
@@ -648,10 +645,16 @@ Di dashboard penyedia cloud:
 1. Buat server baru dengan Ubuntu 24.04 LTS.
 2. Pilih lokasi server yang dekat dengan pengguna.
 3. Gunakan SSH key jika tersedia.
-4. Catat IP publik server.
-5. Jangan membagikan private SSH key atau password server.
+4. Kaitkan Elastic IP ke instance.
+5. Atur Security Group: port 80/443 publik, port 22 hanya dari IP administrator,
+   dan jangan membuka port MySQL 3306 ke internet.
+6. Jangan membagikan private SSH key atau password server.
 
 ### 11.2 Hubungkan Domain
+
+Langkah ini dapat dilewati sementara jika domain belum tersedia. Gunakan
+Elastic IP sebagai alamat stabil, tetapi jangan membuka login publik melalui
+HTTP tanpa enkripsi.
 
 Di pengelola DNS domain, buat record:
 
@@ -676,16 +679,11 @@ Perubahan DNS dapat memerlukan waktu beberapa menit hingga beberapa jam.
 Dari PowerShell komputer Anda:
 
 ```powershell
-ssh root@IP_SERVER
+ssh -i C:\path\ke\private-key.pem ubuntu@ELASTIC_IP
 ```
 
-Ganti `IP_SERVER` dengan IP VPS.
-
-Jika server menggunakan user lain:
-
-```powershell
-ssh nama_user@IP_SERVER
-```
+Sesuaikan path private key dan Elastic IP. Image Ubuntu EC2 umumnya memakai user
+`ubuntu`; jangan mengaktifkan login SSH root.
 
 ### 11.4 Update Server
 
@@ -702,8 +700,9 @@ Ubuntu 24.04 menyediakan PHP 8.3, yang kompatibel dengan project ini.
 
 ```bash
 sudo apt install -y nginx mysql-server git unzip curl \
-php8.3-fpm php8.3-cli php8.3-mysql php8.3-sqlite3 \
-php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath
+    supervisor \
+    php8.3-fpm php8.3-cli php8.3-mysql php8.3-sqlite3 \
+    php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath
 ```
 
 Periksa:
@@ -728,8 +727,9 @@ composer --version
 
 ### 11.7 Pasang Node.js
 
-Pasang Node.js versi LTS menggunakan metode resmi NodeSource atau pengelola
-versi seperti `nvm`. Setelah selesai, periksa:
+Pasang Node.js **22.13.0 atau lebih baru** menggunakan metode resmi NodeSource
+atau pengelola versi seperti `nvm`. Versi ini dibutuhkan oleh PDF.js yang
+terkunci di project. Setelah selesai, periksa:
 
 ```bash
 node --version
@@ -776,7 +776,7 @@ source code.
 ### 11.10 Pasang Dependency Production
 
 ```bash
-composer install --no-dev --optimize-autoloader
+composer install --no-interaction --prefer-dist --optimize-autoloader
 npm ci
 npm run build
 ```
@@ -784,7 +784,7 @@ npm run build
 ### 11.11 Buat `.env` Production
 
 ```bash
-cp .env.example .env
+cp .env.production.example .env
 nano .env
 ```
 
@@ -807,12 +807,19 @@ DB_PASSWORD=GANTI_DENGAN_PASSWORD_DATABASE
 SESSION_DRIVER=database
 CACHE_STORE=database
 QUEUE_CONNECTION=database
+DB_QUEUE_RETRY_AFTER=720
+
+SESSION_SECURE_COOKIE=true
+
+PDF_RENDER_TIMEOUT=600
+PDF_JOB_TIMEOUT=660
 ```
 
 Ganti:
 
 - `domainanda.com` dengan domain Anda;
 - `GANTI_DENGAN_PASSWORD_DATABASE` dengan password MySQL;
+- `SESSION_SECURE_COOKIE=true` hanya dipakai setelah HTTPS aktif;
 - jangan mengirim isi `.env` kepada orang lain.
 
 Simpan Nano dengan `Ctrl + O`, tekan Enter, lalu keluar dengan `Ctrl + X`.
@@ -829,16 +836,15 @@ php artisan key:generate
 php artisan migrate --force
 ```
 
-Untuk production baru yang memang membutuhkan data contoh:
+Jangan menjalankan seeder contoh pada production. Buat administrator pertama
+secara interaktif:
 
 ```bash
-php artisan db:seed --force
+php artisan app:create-admin
 ```
 
-Seeder membuat akun admin dengan password default `password`. Segera ganti
-password tersebut sebelum aplikasi dibuka untuk publik. Untuk production nyata,
-lebih baik membuat data awal secara terkontrol dan tidak mempertahankan data
-dummy.
+Password tidak ditampilkan di terminal dan harus memiliki minimal 12 karakter,
+huruf besar-kecil, angka, serta simbol.
 
 ### 11.13 Atur Permission
 
@@ -851,32 +857,29 @@ sudo chmod -R 775 /var/www/library-management/bootstrap/cache
 
 Folder source lain tidak perlu diberi permission `777`.
 
-### 11.14 Jalankan Queue Worker dengan Supervisor
+### 11.14 Pasang Konfigurasi PHP-FPM
 
-PDF diproses asynchronous, jadi production wajib memiliki worker yang selalu
-hidup. Pasang Supervisor:
+Template PHP menyelaraskan batas server dengan validasi upload PDF 50 MB:
 
 ```bash
-sudo apt install -y supervisor
-sudo nano /etc/supervisor/conf.d/libraflow-worker.conf
+sudo cp deploy/php/99-libraflow.ini /etc/php/8.3/fpm/conf.d/99-libraflow.ini
+sudo systemctl restart php8.3-fpm
 ```
 
-Isi file:
+Periksa nilai aktif:
 
-```ini
-[program:libraflow-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/library-management/artisan queue:work --sleep=2 --tries=3 --timeout=660
-directory=/var/www/library-management
-autostart=true
-autorestart=true
-stopasgroup=true
-killasgroup=true
-user=www-data
-numprocs=1
-redirect_stderr=true
-stdout_logfile=/var/www/library-management/storage/logs/worker.log
-stopwaitsecs=700
+```bash
+php-fpm8.3 -i | grep -E "upload_max_filesize|post_max_size"
+```
+
+### 11.15 Jalankan Queue Worker dengan Supervisor
+
+PDF diproses asynchronous, jadi production wajib memiliki worker yang selalu
+hidup. Pasang template yang sudah disediakan:
+
+```bash
+sudo cp deploy/supervisor/libraflow-worker.conf \
+    /etc/supervisor/conf.d/libraflow-worker.conf
 ```
 
 Aktifkan worker:
@@ -890,77 +893,44 @@ sudo supervisorctl status
 
 Status worker harus `RUNNING`.
 
-### 11.15 Konfigurasi Nginx
+`DB_QUEUE_RETRY_AFTER=720` harus lebih besar dari timeout worker 660 detik agar
+job render yang panjang tidak diproses dua kali.
 
-Buat konfigurasi:
+### 11.16 Konfigurasi Nginx
 
 ```bash
+sudo cp deploy/nginx/libraflow.conf /etc/nginx/sites-available/libraflow
 sudo nano /etc/nginx/sites-available/libraflow
 ```
 
-Masukkan:
-
-```nginx
-server {
-    listen 80;
-    listen [::]:80;
-
-    server_name domainanda.com www.domainanda.com;
-    root /var/www/library-management/public;
-
-    index index.php;
-
-    charset utf-8;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location = /favicon.ico {
-        access_log off;
-        log_not_found off;
-    }
-
-    location = /robots.txt {
-        access_log off;
-        log_not_found off;
-    }
-
-    error_page 404 /index.php;
-
-    location ~ ^/index\.php(/|$) {
-        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-        include fastcgi_params;
-        fastcgi_hide_header X-Powered-By;
-    }
-
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
-}
-```
-
-Ganti nama domain, lalu aktifkan konfigurasi:
+Sesuaikan `server_name`, root project, atau socket PHP-FPM jika berbeda. Template
+sudah berisi batas request 64 MB, security headers, dan proteksi file sensitif.
+Aktifkan konfigurasi:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/libraflow /etc/nginx/sites-enabled/libraflow
+sudo ln -sfn /etc/nginx/sites-available/libraflow /etc/nginx/sites-enabled/libraflow
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
 Jika `nginx -t` menampilkan error, jangan reload sebelum error diperbaiki.
 
-### 11.16 Cache Laravel untuk Production
+### 11.17 Periksa dan Deploy
 
 ```bash
 cd /var/www/library-management
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+bash deploy/scripts/predeploy-check.sh
+bash deploy/scripts/deploy.sh
 ```
 
-### 11.17 Aktifkan HTTPS
+Pemeriksaan akan gagal jika `.env` masih memakai placeholder, database tidak
+tersambung, Node.js tidak tersedia, permission salah, atau konfigurasi belum
+aman. Script deploy menjalankan test, build, migration, cache Laravel, dan
+restart queue dalam maintenance mode. Exit trap akan mencoba mengaktifkan
+aplikasi kembali jika salah satu langkah gagal. Script tidak melakukan
+`git pull`; source code harus sudah diperbarui sebelum script dijalankan.
+
+### 11.18 Aktifkan HTTPS
 
 Pasang Certbot:
 
@@ -976,13 +946,25 @@ sudo certbot --nginx -d domainanda.com -d www.domainanda.com
 
 Ikuti petunjuk di layar. Pilih redirect HTTP ke HTTPS jika ditawarkan.
 
+Jika belum memiliki domain, gunakan metode sertifikat IP yang didukung CA/ACME
+client Anda. Sertifikat IP dapat berumur sangat pendek, sehingga renewal dan
+reload Nginx harus otomatis.
+
 Periksa pembaruan sertifikat:
 
 ```bash
 sudo certbot renew --dry-run
 ```
 
-### 11.18 Pemeriksaan Setelah Deployment
+Jangan membuka login publik sebelum HTTPS aktif. Setelah TLS aktif, pastikan
+`APP_URL` memakai `https://` dan `SESSION_SECURE_COOKIE=true`, lalu jalankan:
+
+```bash
+php artisan optimize
+php artisan app:production-check
+```
+
+### 11.19 Pemeriksaan Setelah Deployment
 
 Buka:
 
@@ -994,6 +976,8 @@ Periksa:
 
 - landing page terbuka;
 - HTTPS aktif;
+- `https://domainanda.com/up` mengembalikan status 200;
+- `https://domainanda.com/health/ready` mengembalikan `{"status":"ready"}`;
 - login admin bekerja;
 - tambah buku bekerja;
 - registrasi dan approval anggota bekerja;
@@ -1004,26 +988,16 @@ Periksa:
 - librarian tidak dapat membuka `/admin/reading-history`;
 - worker Supervisor berstatus `RUNNING`;
 - `APP_DEBUG=false`;
+- `php artisan app:production-check` berhasil;
 - tidak ada file `.env` yang dapat dibuka dari browser.
 
 ## 12. Update Aplikasi di Server
 
-Ketika ada versi source code baru:
+Ketika source code versi baru sudah tersedia di server:
 
 ```bash
 cd /var/www/library-management
-php artisan down
-git pull
-composer install --no-dev --optimize-autoloader
-npm ci
-npm run build
-php artisan migrate --force
-php artisan optimize:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan queue:restart
-php artisan up
+bash deploy/scripts/deploy.sh
 ```
 
 Sebelum update production:
@@ -1057,6 +1031,18 @@ Restore backup:
 mysql -u libraflow_user -p libraflow < nama-file-backup.sql
 ```
 
+### Backup Buku Digital
+
+Database tidak berisi file PDF dan PNG hasil render. Backup direktori berikut
+secara terjadwal ke storage terpisah dari instance:
+
+```text
+storage/app/private/digital-books
+```
+
+Untuk EC2, gunakan snapshot EBS atau AWS Backup dan tetap simpan salinan di
+lokasi berbeda. Uji restore database dan file privat secara berkala.
+
 ### Jika Memakai SQLite di Server
 
 SQLite dapat digunakan untuk server kecil, tetapi MySQL lebih disarankan untuk
@@ -1084,9 +1070,12 @@ diunduh dari internet.
 - Batasi akses SSH dan gunakan SSH key.
 - Update paket server secara berkala.
 - Backup database secara rutin dan uji proses restore.
+- Backup `storage/app/private/digital-books` dan uji pemulihannya.
 - Jangan memberi permission `777` ke seluruh project.
 - Hanya upload PDF yang hak distribusinya dimiliki perpustakaan.
 - Batasi akses backup karena berisi data member dan dokumen buku.
+- Pantau kapasitas disk, penggunaan memori, error Nginx/PHP, status Supervisor,
+  dan respons `/health/ready`; CloudWatch Agent dapat digunakan pada EC2.
 - Web tidak dapat menjamin pemblokiran screenshot perangkat. Proteksi
   LibraFlow adalah storage privat, gambar per halaman, watermark identitas,
   penghambat aksi browser umum, dan audit sesi.
