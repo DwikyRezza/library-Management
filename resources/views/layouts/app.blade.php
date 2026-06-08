@@ -14,8 +14,8 @@
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100" x-data="appShell">
-    <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+<body class="min-h-screen bg-slate-50 text-slate-900 dark:bg-background dark:text-on-background" x-data="appShell">
+    <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-outline-variant/10 dark:bg-background/90">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="flex items-center gap-3">
                 <span class="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-blue-500 font-black text-white shadow-lg shadow-indigo-500/20">L</span>
@@ -52,8 +52,8 @@
         @yield('content')
     </main>
 
-    <footer class="mt-16 border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:text-slate-400">
+    <footer class="mt-16 border-t border-slate-200 bg-white dark:border-outline-variant/10 dark:bg-surface-container-low">
+        <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:text-on-surface-variant">
             <p>&copy; {{ date('Y') }} LibraFlow. Built for modern campus libraries.</p>
             <p>Discover. Borrow. Learn.</p>
         </div>

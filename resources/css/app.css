@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&display=swap');
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -8,9 +9,71 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --font-sans: 'Inter', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Hanken Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
     --color-brand-500: #6366f1;
     --color-brand-600: #4f46e5;
+
+    /* Obsidian Deep color tokens */
+    --color-surface: #051424;
+    --color-surface-dim: #051424;
+    --color-surface-bright: #2c3a4c;
+    --color-surface-container-lowest: #010f1f;
+    --color-surface-container-low: #0d1c2d;
+    --color-surface-container: #122131;
+    --color-surface-container-high: #1c2b3c;
+    --color-surface-container-highest: #273647;
+    --color-on-surface: #d4e4fa;
+    --color-on-surface-variant: #c6c6cc;
+    --color-inverse-surface: #d4e4fa;
+    --color-inverse-on-surface: #233143;
+    --color-outline: #8f9096;
+    --color-outline-variant: #45474c;
+    --color-surface-tint: #c0c6d8;
+    --color-primary: #c0c6d8;
+    --color-on-primary: #2a303e;
+    --color-primary-container: #121926;
+    --color-on-primary-container: #7b8292;
+    --color-inverse-primary: #585e6e;
+    --color-secondary: #bcc7de;
+    --color-on-secondary: #263143;
+    --color-secondary-container: #3e495d;
+    --color-on-secondary-container: #aeb9d0;
+    --color-tertiary: #ffb2b7;
+    --color-on-tertiary: #67001b;
+    --color-tertiary-container: #3b000c;
+    --color-on-tertiary-container: #ef3b5b;
+    --color-error: #ffb4ab;
+    --color-on-error: #690005;
+    --color-error-container: #93000a;
+    --color-on-error-container: #ffdad6;
+    --color-primary-fixed: #dce2f5;
+    --color-primary-fixed-dim: #c0c6d8;
+    --color-on-primary-fixed: #151c29;
+    --color-on-primary-fixed-variant: #404756;
+    --color-secondary-fixed: #d8e3fb;
+    --color-secondary-fixed-dim: #bcc7de;
+    --color-on-secondary-fixed: #111c2d;
+    --color-on-secondary-fixed-variant: #3c475a;
+    --color-tertiary-fixed: #ffdadb;
+    --color-tertiary-fixed-dim: #ffb2b7;
+    --color-on-tertiary-fixed: #40000d;
+    --color-on-tertiary-fixed-variant: #92002a;
+    --color-background: #051424;
+    --color-on-background: #d4e4fa;
+    --color-surface-variant: #273647;
+
+    /* Border Radius tokens */
+    --radius-sm: 0.25rem;
+    --radius-default: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1.0rem;
+    --radius-xl: 1.5rem;
+
+    /* Spacing tokens */
+    --spacing-container-padding: 1.5rem;
+    --spacing-element-gap: 0.75rem;
+    --spacing-section-margin: 2rem;
+    --spacing-gutter: 1rem;
 }
 
 @layer base {
@@ -33,26 +96,26 @@
 
 @layer components {
     .panel {
-        @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900;
+        @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-outline-variant/30 dark:bg-surface-container-low;
     }
 
     .input {
-        @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100;
+        @apply w-full rounded-md border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 dark:border-outline-variant/30 dark:bg-surface-container-lowest dark:text-on-surface;
     }
 
     .label {
-        @apply mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300;
+        @apply mb-1.5 block text-sm font-semibold text-slate-700 dark:text-on-surface-variant;
     }
 
     .btn-primary {
-        @apply inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60;
+        @apply inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+        @apply inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-outline-variant/30 dark:bg-surface-container dark:text-slate-200 dark:hover:bg-surface-container-high;
     }
 
     .btn-danger {
-        @apply inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700;
+        @apply inline-flex items-center justify-center rounded-md bg-[#92002a] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#92002a]/90;
     }
 }
