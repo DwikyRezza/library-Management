@@ -74,7 +74,8 @@ class DigitalReaderTest extends TestCase
             ->get(route('member.reader.show', $session))
             ->assertOk()
             ->assertSee($book->title)
-            ->assertSee('Halaman diberi watermark');
+            ->assertSee('Halaman diberi watermark')
+            ->assertSee('Halaman gagal dimuat');
     }
 
     public function test_page_response_is_a_private_watermarked_image(): void
@@ -111,6 +112,20 @@ class DigitalReaderTest extends TestCase
         $this->assertStringContainsString('no-store', $cacheControl);
         $this->assertStringNotContainsString('public', $cacheControl);
         $this->assertStringNotContainsString('.pdf', $response->headers->get('content-disposition', ''));
+    }
+
+    public function test_page_response_is_not_found_when_rendered_page_file_is_missing(): void
+    {
+        config(['services.digital_reader.storage_disk' => 'local']);
+        Storage::fake('local');
+
+        $member = Member::factory()->pending()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $session = $this->createReadingSession($member, $book, $asset);
+
+        $this->actingAs($member, 'member')
+            ->get(route('member.reader.page', [$session, 1]))
+            ->assertNotFound();
     }
 
     public function test_page_response_can_stream_watermarked_images_from_the_configured_disk(): void

@@ -13,6 +13,7 @@
           total: {{ $asset->page_count }},
           zoom: 100,
           loading: true,
+          loadError: false,
           heartbeatTimer: null,
           pageUrl() {
               let baseUrl = '{{ route("member.reader.page", [$session, "9999"]) }}';
@@ -22,6 +23,7 @@
               if (next < 1 || next > this.total) return;
               this.page = next;
               this.loading = true;
+              this.loadError = false;
               this.heartbeat();
               window.scrollTo({ top: 0, behavior: 'smooth' });
           },
@@ -75,13 +77,22 @@
 
         <div class="relative mx-auto overflow-auto rounded-lg bg-slate-800 p-2 text-center shadow-2xl shadow-slate-950/30">
             <div x-show="loading" class="absolute inset-0 z-10 grid min-h-96 place-items-center bg-slate-800/80 font-semibold">Memuat halaman...</div>
+            <div x-cloak x-show="loadError" class="grid min-h-96 place-items-center rounded-md border border-rose-400/20 bg-rose-400/10 px-6 py-12 text-center">
+                <div>
+                    <p class="text-lg font-bold text-rose-100">Halaman gagal dimuat</p>
+                    <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-rose-100/80">File halaman hasil render tidak ditemukan atau server gagal membuat watermark. Hubungi admin untuk render ulang buku digital ini.</p>
+                    <button type="button" class="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold hover:bg-blue-500" x-on:click="loading = true; loadError = false; $nextTick(() => { const image = $refs.pageImage; image.src = pageUrl() + '?retry=' + Date.now(); })">Coba muat ulang</button>
+                </div>
+            </div>
             <img :src="pageUrl()"
+                 x-ref="pageImage"
                  :style="`width: ${zoom}%; max-width: none;`"
-                 x-on:load="loading = false"
-                 x-on:error="loading = false"
+                 x-on:load="loading = false; loadError = false"
+                 x-on:error="loading = false; loadError = true"
                  alt="Halaman buku"
                  draggable="false"
-                 class="mx-auto block h-auto min-w-[320px]">
+                 class="mx-auto block h-auto min-w-[320px]"
+                 x-bind:class="loadError ? 'hidden' : ''">
         </div>
     </main>
 

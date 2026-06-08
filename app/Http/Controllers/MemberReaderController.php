@@ -11,8 +11,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MemberReaderController extends Controller
@@ -50,7 +52,19 @@ class MemberReaderController extends Controller
 
         abort_unless($asset?->isReady() && $page >= 1 && $page <= $asset->page_count, 404);
 
-        $path = $watermarker->watermark($asset, $readingSession->member, $readingSession, $page);
+        try {
+            $path = $watermarker->watermark($asset, $readingSession->member, $readingSession, $page);
+        } catch (RuntimeException $exception) {
+            Log::warning('Digital reader page could not be prepared.', [
+                'asset_id' => $asset->id,
+                'session_id' => $readingSession->id,
+                'page' => $page,
+                'message' => $exception->getMessage(),
+            ]);
+
+            abort(404);
+        }
+
         $disk = Storage::disk($this->digitalBookDiskName());
         $stream = $disk->readStream($path);
 
