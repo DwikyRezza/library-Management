@@ -75,18 +75,12 @@ class DatabaseSeeder extends Seeder
                 ]),
             ]);
 
-            $branches = collect([
-                ['Information Technology', 'IT'],
-                ['Informatics', 'INF'],
-                ['Information System', 'IS'],
-                ['Electrical Engineering', 'EE'],
-                ['Management', 'MGT'],
-            ])->mapWithKeys(fn (array $branch) => [
-                $branch[0] => Branch::query()->create([
-                    'name' => $branch[0],
-                    'code' => $branch[1],
-                ]),
-            ]);
+            $this->call(BranchSeeder::class);
+
+            $branches = Branch::query()
+                ->whereIn('code', array_column(BranchSeeder::BRANCHES, 'code'))
+                ->get()
+                ->keyBy('name');
 
             $bookSeeds = [
                 ['Clean Architecture for Campus Apps', 'Rina Prasetyo', 'Technology'],
