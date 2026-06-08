@@ -17,13 +17,16 @@ class UpdateBookRequest extends FormRequest
         $book = $this->route('book');
 
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'author' => ['required', 'string', 'max:255'],
-            'publisher' => ['nullable', 'string', 'max:255'],
+            'title'            => ['required', 'string', 'max:255'],
+            'author'           => ['required', 'string', 'max:255'],
+            'publisher'        => ['nullable', 'string', 'max:255'],
             'publication_year' => ['nullable', 'integer', 'between:1000,2100'],
-            'isbn' => ['nullable', 'string', 'max:50', Rule::unique('books', 'isbn')->ignore($book)],
-            'category_id' => ['required', 'exists:book_categories,id'],
-            'description' => ['nullable', 'string', 'max:5000'],
+            'isbn'             => ['nullable', 'string', 'max:50', Rule::unique('books', 'isbn')->ignore($book)],
+            'category_id'      => ['required', 'exists:book_categories,id'],
+            'description'      => ['nullable', 'string', 'max:5000'],
+            'cover_image'      => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:5120'],
+            'pdf'              => ['nullable', 'file', 'mimes:pdf', 'max:102400'],
         ];
+
     }
 }

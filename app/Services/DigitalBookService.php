@@ -18,7 +18,7 @@ class DigitalBookService
     {
         $uuid = (string) Str::uuid();
         $directory = "digital-books/{$uuid}";
-        $path = $pdf->storeAs($directory, 'original.pdf', 'local');
+        $path = $pdf->storeAs($directory, 'original.pdf', 's3');
 
         try {
             $previous = $book->digitalAsset()->first();
@@ -44,13 +44,13 @@ class DigitalBookService
                 ]);
             });
         } catch (Throwable $exception) {
-            Storage::disk('local')->deleteDirectory($directory);
+            Storage::disk('s3')->deleteDirectory($directory);
 
             throw $exception;
         }
 
         if ($previous) {
-            Storage::disk('local')->deleteDirectory("digital-books/{$previous->uuid}");
+            Storage::disk('s3')->deleteDirectory("digital-books/{$previous->uuid}");
         }
 
         RenderDigitalBook::dispatch($asset->id)->afterCommit();
@@ -68,6 +68,6 @@ class DigitalBookService
                 ->update(['ended_at' => now()]);
             $asset->delete();
         });
-        Storage::disk('local')->deleteDirectory($directory);
+        Storage::disk('s3')->deleteDirectory($directory);
     }
 }

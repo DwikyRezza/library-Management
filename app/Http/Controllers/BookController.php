@@ -8,6 +8,7 @@ use App\Models\Book;
 use App\Models\BookCategory;
 use App\Models\BookCopy;
 use App\Services\BookService;
+use App\Services\DigitalBookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,8 +18,8 @@ class BookController extends Controller
     public function index(Request $request): View
     {
         $filters = $request->validate([
-            'q' => ['nullable', 'string', 'max:255'],
-            'category' => ['nullable', 'integer', 'exists:book_categories,id'],
+            'q'            => ['nullable', 'string', 'max:255'],
+            'category'     => ['nullable', 'integer', 'exists:book_categories,id'],
             'availability' => ['nullable', 'in:available,unavailable'],
         ]);
 
@@ -33,7 +34,7 @@ class BookController extends Controller
             ->withQueryString();
 
         return view('admin.books.index', [
-            'books' => $books,
+            'books'      => $books,
             'categories' => BookCategory::query()->orderBy('name')->get(),
         ]);
     }
@@ -45,9 +46,20 @@ class BookController extends Controller
         ]);
     }
 
-    public function store(StoreBookRequest $request, BookService $bookService): RedirectResponse
-    {
-        $book = $bookService->create($request->validated());
+    public function store(
+        StoreBookRequest $request,
+        BookService $bookService,
+        DigitalBookService $digitalBookService,
+    ): RedirectResponse {
+        $book = $bookService->create(
+            $request->validated(),
+            $request->file('cover_image'),
+        );
+
+        // Upload PDF via DigitalBookService (stores to S3, queues render job)
+        if ($request->hasFile('pdf')) {
+            $digitalBookService->replace($book, $request->file('pdf'), $request->user());
+        }
 
         return redirect()->route('admin.books.show', $book)->with('success', 'Book and copies created.');
     }
@@ -56,7 +68,7 @@ class BookController extends Controller
     {
         $book->load([
             'category',
-            'copies' => fn ($query) => $query->orderBy('copy_code'),
+            'copies'       => fn ($query) => $query->orderBy('copy_code'),
             'digitalAsset.uploader',
         ]);
 
@@ -67,23 +79,36 @@ class BookController extends Controller
             ->get();
 
         return view('admin.books.show', [
-            'book' => $book,
+            'book'               => $book,
             'recentTransactions' => $recentTransactions,
-            'copyStatuses' => BookCopy::STATUSES,
+            'copyStatuses'       => BookCopy::STATUSES,
         ]);
     }
 
     public function edit(Book $book): View
     {
         return view('admin.books.edit', [
-            'book' => $book,
+            'book'       => $book,
             'categories' => BookCategory::query()->orderBy('name')->get(),
         ]);
     }
 
-    public function update(UpdateBookRequest $request, Book $book, BookService $bookService): RedirectResponse
-    {
-        $bookService->update($book, $request->validated());
+    public function update(
+        UpdateBookRequest $request,
+        Book $book,
+        BookService $bookService,
+        DigitalBookService $digitalBookService,
+    ): RedirectResponse {
+        $bookService->update(
+            $book,
+            $request->validated(),
+            $request->file('cover_image'),
+        );
+
+        // Replace PDF if a new one was uploaded
+        if ($request->hasFile('pdf')) {
+            $digitalBookService->replace($book, $request->file('pdf'), $request->user());
+        }
 
         return redirect()->route('admin.books.show', $book)->with('success', 'Book updated.');
     }
@@ -97,9 +122,9 @@ class BookController extends Controller
 
     public function deleteAll(BookService $bookService): RedirectResponse
     {
-        $books = Book::all();
+        $books        = Book::all();
         $deletedCount = 0;
-        $failedCount = 0;
+        $failedCount  = 0;
 
         foreach ($books as $book) {
             try {
