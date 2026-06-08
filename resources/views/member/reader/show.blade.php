@@ -15,8 +15,9 @@
           loading: true,
           heartbeatTimer: null,
           pageUrl() {
-              // Perbaikan string placeholder dari '__PAGE__' menjadi '9999' agar parser Blade tidak error
-              return @js(route('member.reader.page', [$session, 9999])).replace('9999', this.page);
+              // Menggunakan string template literal Blade murni untuk menghindari bentrokan parser compiler
+              let baseUrl = '{{ route("member.reader.page", [$session, "9999"]) }}';
+              return baseUrl.replace('9999', this.page);
           },
           changePage(next) {
               if (next < 1 || next > this.total) return;
@@ -26,7 +27,10 @@
               window.scrollTo({ top: 0, behavior: 'smooth' });
           },
           heartbeat(finish = false) {
-              fetch(finish ? @js(route('member.reader.finish', $session)) : @js(route('member.reader.heartbeat', $session)), {
+              // Mengamankan endpoint heartbeat dan finish menggunakan string literal Blade agar seragam dan aman
+              let url = finish ? '{{ route("member.reader.finish", $session) }}' : '{{ route("member.reader.heartbeat", $session) }}';
+              
+              fetch(url, {
                   method: 'POST',
                   keepalive: finish,
                   headers: {
@@ -48,9 +52,8 @@
       @dragstart.prevent
       @keydown.window="
           if ((event.ctrlKey || event.metaKey) && ['s', 'p', 'u', 'c'].includes(event.key.toLowerCase())) event.preventDefault();
-          // Perbaikan pemanggilan fungsi changePage menggunakan keyword 'this' agar dikenali Alpine.js
-          if (event.key === 'ArrowLeft') this.changePage(this.page - 1);
-          if (event.key === 'ArrowRight') this.changePage(this.page + 1);
+          if (event.key === 'ArrowLeft') changePage(page - 1);
+          if (event.key === 'ArrowRight') changePage(page + 1);
       ">
     <header class="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur">
         <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
