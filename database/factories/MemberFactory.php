@@ -21,7 +21,7 @@ class MemberFactory extends Factory
             'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
             'password' => 'password',
-            'phone' => fake()->optional()->phoneNumber(),
+            'phone' => fake()->phoneNumber(),
             'roll_number' => fake()->unique()->bothify('STU-####'),
             'branch_id' => Branch::factory(),
             'year' => fake()->numberBetween(1, 4),

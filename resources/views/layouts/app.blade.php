@@ -31,12 +31,11 @@
                     <span x-text="dark ? 'Light' : 'Dark'" class="text-[10px] font-bold"></span>
                 </button>
                 @auth('member')
-                    <form method="POST" action="{{ route('member.logout') }}">
+                    <a href="{{ route('member.profile') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 sm:block dark:text-slate-300 dark:hover:bg-slate-800">Profil Saya</a>
+                    <form method="POST" action="{{ route('member.logout') }}" class="inline">
                         @csrf
                         <button class="btn-secondary">Keluar member</button>
                     </form>
-                @elseauth
-                    <a href="{{ route('admin.dashboard') }}" class="btn-primary">Dashboard</a>
                 @else
                     <a href="{{ route('member.login') }}" class="btn-primary">Login member</a>
                 @endauth

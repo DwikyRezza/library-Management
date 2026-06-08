@@ -33,12 +33,15 @@ Route::middleware('guest:member')->group(function (): void {
         ->name('member.login.store');
 });
 
-Route::post('/member/logout', [MemberAuthController::class, 'destroy'])
-    ->middleware('auth:member')
-    ->name('member.logout');
+use App\Http\Controllers\MemberProfileController;
 
-Route::middleware(['auth:member', 'member.reader'])
-    ->group(function (): void {
+Route::middleware('auth:member')->group(function (): void {
+    Route::post('/member/logout', [MemberAuthController::class, 'destroy'])->name('member.logout');
+    
+    Route::get('/member/profile', [MemberProfileController::class, 'show'])->name('member.profile');
+    Route::put('/member/profile', [MemberProfileController::class, 'update'])->name('member.profile.update');
+
+    Route::middleware(['member.profile.complete', 'member.reader'])->group(function (): void {
         Route::get('/read/{book}', [MemberReaderController::class, 'open'])
             ->middleware('throttle:30,1')
             ->name('member.reader.open');
@@ -55,6 +58,7 @@ Route::middleware(['auth:member', 'member.reader'])
             ->middleware('throttle:30,1')
             ->name('member.reader.finish');
     });
+});
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');

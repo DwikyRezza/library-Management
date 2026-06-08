@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\LibraFlow;
 
+use App\Models\Branch;
 use App\Models\Member;
 use App\Models\MemberCategory;
 use App\Models\User;
@@ -72,7 +73,7 @@ class GoogleAuthTest extends TestCase
         $response = $this->withSession(['socialite_type' => 'member'])
             ->get('/auth/google/callback');
 
-        $response->assertRedirect(route('books.search'));
+        $response->assertRedirect(route('member.profile'));
         $this->assertTrue(Auth::guard('member')->check());
 
         $member = Auth::guard('member')->user();
@@ -89,11 +90,16 @@ class GoogleAuthTest extends TestCase
     public function test_member_google_login_authenticates_existing_member(): void
     {
         $category = MemberCategory::factory()->create();
+        $branch = Branch::factory()->create();
         $member = Member::factory()->create([
             'email' => 'existing@gmail.com',
             'google_id' => '123456',
             'member_category_id' => $category->id,
             'approved' => true,
+            'phone' => '0812345678',
+            'year' => 2,
+            'branch_id' => $branch->id,
+            'roll_number' => 'STU-456',
         ]);
 
         $googleUser = Mockery::mock(\Laravel\Socialite\Two\User::class);
@@ -119,10 +125,15 @@ class GoogleAuthTest extends TestCase
     public function test_member_google_login_binds_by_email_if_google_id_missing(): void
     {
         $category = MemberCategory::factory()->create();
+        $branch = Branch::factory()->create();
         $member = Member::factory()->create([
             'email' => 'bind@gmail.com',
             'google_id' => null,
             'member_category_id' => $category->id,
+            'phone' => '0812345678',
+            'year' => 2,
+            'branch_id' => $branch->id,
+            'roll_number' => 'STU-789',
         ]);
 
         $googleUser = Mockery::mock(\Laravel\Socialite\Two\User::class);

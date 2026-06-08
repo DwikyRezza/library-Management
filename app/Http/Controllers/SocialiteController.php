@@ -144,8 +144,8 @@ class SocialiteController extends Controller
             request()->session()->regenerate();
 
             return redirect()
-                ->route('books.search')
-                ->with('success', 'Registrasi berhasil dan Anda telah masuk. Silakan lengkapi profil Anda nanti jika diperlukan.');
+                ->route('member.profile')
+                ->with('warning', 'Registrasi berhasil. Silakan lengkapi profil Anda terlebih dahulu.');
         }
 
         if ($member->rejected) {
@@ -161,6 +161,12 @@ class SocialiteController extends Controller
 
         Auth::guard('member')->login($member);
         request()->session()->regenerate();
+
+        if ($member->isProfileIncomplete()) {
+            return redirect()
+                ->route('member.profile')
+                ->with('warning', 'Silakan lengkapi profil Anda terlebih dahulu.');
+        }
 
         return redirect()->route('books.search')->with('success', "Selamat datang kembali, {$member->first_name}!");
     }

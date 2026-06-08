@@ -115,6 +115,15 @@ class Member extends Authenticatable
         return ! $this->rejected;
     }
 
+    public function isProfileIncomplete(): bool
+    {
+        return blank($this->phone)
+            || is_null($this->branch_id)
+            || is_null($this->year)
+            || blank($this->member_category_id)
+            || str_starts_with($this->roll_number, 'GGL-');
+    }
+
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
         return $query->when($term, function (Builder $query, string $term): void {

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\EnsureMemberCanRead;
+use App\Http\Middleware\EnsureMemberProfileComplete;
 use App\Http\Middleware\EnsureStaffIsActive;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Foundation\Application;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin.only' => EnsureUserIsAdmin::class,
             'member.reader' => EnsureMemberCanRead::class,
+            'member.profile.complete' => EnsureMemberProfileComplete::class,
             'staff.active' => EnsureStaffIsActive::class,
         ]);
     })
