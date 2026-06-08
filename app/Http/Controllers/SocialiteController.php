@@ -121,9 +121,16 @@ class SocialiteController extends Controller
                 $memberCode = 'MBR-' . Str::upper(Str::substr((string) Str::ulid(), -8));
             } while (Member::withTrashed()->where('member_code', $memberCode)->exists());
 
-            // Default category
-            $category = MemberCategory::query()->where('name', 'Regular Student')->first()
-                ?? MemberCategory::query()->first();
+            // Default category (Defensive Programming)
+            $category = MemberCategory::query()->where('name', 'Regular Student')->first();
+            if (! $category) {
+                $category = MemberCategory::query()->create([
+                    'name' => 'Regular Student',
+                    'max_books' => 3,
+                    'loan_days' => 14,
+                    'description' => 'Default undergraduate borrowing quota.',
+                ]);
+            }
 
             $member = Member::query()->create([
                 'member_code' => $memberCode,
