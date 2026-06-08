@@ -126,6 +126,7 @@ class DigitalReaderTest extends TestCase
 
     public function test_catalog_only_offers_online_reading_for_ready_assets(): void
     {
+        $member = Member::factory()->create();
         [$readyBook] = $this->createReadyBook();
         $processingBook = Book::factory()->create(['title' => 'Belum Siap']);
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
@@ -142,11 +143,21 @@ class DigitalReaderTest extends TestCase
             'uploaded_by' => $admin->id,
         ]);
 
-        $response = $this->get('/books/search');
+        $response = $this->actingAs($member, 'member')->get('/books/search');
 
         $response->assertOk();
         $response->assertSee(route('member.reader.open', $readyBook), false);
         $response->assertDontSee(route('member.reader.open', $processingBook), false);
+    }
+
+    public function test_catalog_does_not_offer_online_reading_for_guests(): void
+    {
+        [$readyBook] = $this->createReadyBook();
+
+        $response = $this->get('/books/search');
+
+        $response->assertOk();
+        $response->assertDontSee(route('member.reader.open', $readyBook), false);
     }
 
     private function createReadyBook(): array
