@@ -14,6 +14,7 @@ use App\Http\Controllers\MemberReaderController;
 use App\Http\Controllers\MemberRegistrationController;
 use App\Http\Controllers\PublicBookController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SocialiteController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,9 @@ Route::get('/', [PublicBookController::class, 'home'])->name('home');
 Route::get('/books/search', [PublicBookController::class, 'search'])->name('books.search');
 Route::get('/member/register', [MemberRegistrationController::class, 'create'])->name('member.register');
 Route::post('/member/register', [MemberRegistrationController::class, 'store'])->name('member.register.store');
+
+Route::get('/auth/google/redirect/{type}', [SocialiteController::class, 'redirectToGoogle'])->name('auth.google.redirect');
+Route::get('/auth/google/callback', [SocialiteController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 
 Route::middleware('guest:member')->group(function (): void {
     Route::get('/member/login', [MemberAuthController::class, 'create'])->name('member.login');

@@ -38,6 +38,7 @@ class Member extends Authenticatable
         'approved_at',
         'rejected_at',
         'books_borrowed_count',
+        'google_id',
     ];
 
     protected $casts = [
