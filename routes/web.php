@@ -74,6 +74,7 @@ Route::prefix('admin')
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
         Route::resource('categories', BookCategoryController::class)->except('show');
+        Route::delete('books/delete-all', [BookController::class, 'deleteAll'])->name('books.delete-all');
         Route::resource('books', BookController::class);
         Route::middleware('admin.only')->group(function (): void {
             Route::post('/books/{book}/digital', [DigitalBookController::class, 'store'])

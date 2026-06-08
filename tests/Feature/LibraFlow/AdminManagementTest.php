@@ -146,4 +146,59 @@ class AdminManagementTest extends TestCase
             $this->actingAs($user)->get($url)->assertOk();
         }
     }
+
+    public function test_admin_can_delete_a_book(): void
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
+
+        $this->actingAs($user)
+            ->delete("/admin/books/{$book->id}")
+            ->assertRedirect(route('admin.books.index'))
+            ->assertSessionHas('success', 'Buku berhasil dihapus.');
+
+        $this->assertSoftDeleted($book);
+    }
+
+    public function test_admin_can_delete_all_books(): void
+    {
+        $user = User::factory()->create();
+        $book1 = Book::factory()->create();
+        $book2 = Book::factory()->create();
+
+        $this->actingAs($user)
+            ->delete('/admin/books/delete-all')
+            ->assertRedirect(route('admin.books.index'))
+            ->assertSessionHas('success', 'Semua buku berhasil dihapus.');
+
+        $this->assertSoftDeleted($book1);
+        $this->assertSoftDeleted($book2);
+    }
+
+    public function test_delete_all_skips_books_with_active_loans(): void
+    {
+        $user = User::factory()->create();
+        $book1 = Book::factory()->create();
+        $book2 = Book::factory()->create();
+        $copy = BookCopy::factory()->create([
+            'book_id' => $book2->id,
+            'status' => BookCopy::STATUS_BORROWED,
+        ]);
+        $member = Member::factory()->create();
+        BorrowTransaction::factory()->create([
+            'book_copy_id' => $copy->id,
+            'member_id' => $member->id,
+            'issued_by' => $user->id,
+            'status' => BorrowTransaction::STATUS_BORROWED,
+            'returned_at' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->delete('/admin/books/delete-all')
+            ->assertRedirect(route('admin.books.index'))
+            ->assertSessionHas('success', 'Berhasil menghapus 1 buku. 1 buku gagal dihapus karena sedang dipinjam.');
+
+        $this->assertSoftDeleted($book1);
+        $this->assertNotSoftDeleted($book2);
+    }
 }

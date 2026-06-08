@@ -92,6 +92,29 @@ class BookController extends Controller
     {
         $bookService->delete($book);
 
-        return redirect()->route('admin.books.index')->with('success', 'Book archived.');
+        return redirect()->route('admin.books.index')->with('success', 'Buku berhasil dihapus.');
+    }
+
+    public function deleteAll(BookService $bookService): RedirectResponse
+    {
+        $books = Book::all();
+        $deletedCount = 0;
+        $failedCount = 0;
+
+        foreach ($books as $book) {
+            try {
+                $bookService->delete($book);
+                $deletedCount++;
+            } catch (\Exception $e) {
+                $failedCount++;
+            }
+        }
+
+        if ($failedCount > 0) {
+            return redirect()->route('admin.books.index')
+                ->with('success', "Berhasil menghapus {$deletedCount} buku. {$failedCount} buku gagal dihapus karena sedang dipinjam.");
+        }
+
+        return redirect()->route('admin.books.index')->with('success', 'Semua buku berhasil dihapus.');
     }
 }
