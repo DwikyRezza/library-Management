@@ -16,7 +16,7 @@
     <!-- Modal Card -->
     <div x-show="open" 
          x-transition 
-         class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 relative z-10">
+         class="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-2xl relative z-10">
         
         <form method="POST" action="{{ $action }}" class="m-0">
             @csrf
@@ -27,7 +27,7 @@
                 <div class="flex items-start gap-4">
 
                     <!-- Warning Icon -->
-                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-500 dark:text-red-400">
+                    <div class="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-400">
                         <svg xmlns="http://www.w3.org/2000/svg"
                              class="h-5 w-5"
                              fill="none"
@@ -42,11 +42,11 @@
 
                     <!-- Text -->
                     <div class="text-left">
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                        <h2 class="text-xl font-bold text-white">
                             {{ $title }}
                         </h2>
 
-                        <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <p class="mt-3 text-sm leading-6 text-slate-400">
                             {{ $slot }}
                         </p>
                     </div>
@@ -54,20 +54,20 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/80">
+            <div class="flex justify-end gap-3 border-t border-slate-700 bg-[#111827] px-6 py-4">
 
                 <!-- Cancel Button -->
                 <button
                     type="button"
                     @click="open = false"
-                    class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white">
+                    class="rounded-xl border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-700 hover:text-white">
                     Cancel
                 </button>
 
                 <!-- Delete Button -->
                 <button
                     type="submit"
-                    class="inline-flex items-center justify-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-950/30 transition hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    class="rounded-xl !bg-red-600 px-5 py-2.5 text-sm font-semibold !text-white shadow-lg shadow-red-950/40 transition hover:!bg-red-500">
                     Delete
                 </button>
 
