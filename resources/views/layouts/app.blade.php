@@ -42,11 +42,26 @@
                     <span x-text="dark ? 'Light' : 'Dark'" class="text-[10px] font-bold"></span>
                 </button>
                 @auth('member')
-                    <a href="{{ route('member.profile') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 sm:block dark:text-[#c6c6cc] dark:hover:bg-[#1c2b3c] dark:hover:text-[#d4e4fa]">Profil Saya</a>
-                    <form method="POST" action="{{ route('member.logout') }}" class="inline">
-                        @csrf
-                        <button class="btn-secondary">Keluar member</button>
-                    </form>
+                    <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                        <button @click="open = !open" type="button" class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-[#1c2b3c] dark:text-[#d4e4fa] dark:hover:bg-[#25374d]">
+                            <svg class="size-5 text-slate-500 dark:text-[#c6c6cc]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                            </svg>
+                            <span class="max-w-[100px] truncate hidden sm:inline">{{ auth('member')->user()->first_name }}</span>
+                            <svg class="size-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        
+                        <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="absolute right-0 mt-2 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-white/10 dark:bg-[#1c2b3c] z-50">
+                            <a href="{{ route('member.profile') }}" class="block rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-[#d4e4fa] dark:hover:bg-[#25374d]">Setting Profil</a>
+                            <hr class="my-1 border-slate-100 dark:border-white/5" />
+                            <form method="POST" action="{{ route('member.logout') }}" class="block">
+                                @csrf
+                                <button type="submit" class="w-full text-left block rounded-lg px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30">Keluar</button>
+                            </form>
+                        </div>
+                    </div>
                 @else
                     <a href="{{ route('member.login') }}" class="btn-primary">Login member</a>
                 @endauth
