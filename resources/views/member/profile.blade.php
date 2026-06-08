@@ -5,7 +5,7 @@
 @section('content')
 <section class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
     <div>
-        <p class="font-bold text-indigo-655 dark:text-indigo-400">Profil Keanggotaan</p>
+        <p class="font-bold text-indigo-600 dark:text-indigo-400">Profil Keanggotaan</p>
         <h1 class="mt-2 text-4xl font-black">Lengkapi Data Diri Anda.</h1>
         <p class="mt-4 leading-7 text-slate-500 dark:text-slate-400">Sebelum dapat menjelajahi buku dan menggunakan fasilitas perpustakaan secara penuh, harap lengkapi data profil keanggotaan Anda di sebelah kanan.</p>
         
@@ -36,7 +36,7 @@
 
             <div class="sm:col-span-2">
                 <label class="label">Alamat Email (Akun Google)</label>
-                <input class="input bg-slate-100 text-slate-550 cursor-not-allowed dark:bg-slate-900/50 dark:text-slate-400" type="email" name="email" value="{{ $member->email }}" readonly>
+                <input class="input bg-slate-100 text-slate-500 cursor-not-allowed dark:bg-slate-900/50 dark:text-slate-400" type="email" name="email" value="{{ $member->email }}" readonly>
                 <p class="mt-1.5 text-xs text-slate-400">Email di atas ditautkan secara aman dengan Google Sign-In dan tidak dapat diubah.</p>
             </div>
 

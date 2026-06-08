@@ -76,13 +76,13 @@
             </div>
 
             <!-- Footer (Action Zone) -->
-            <div class="bg-white px-6 py-4 flex justify-end items-center gap-3">
+            <div class="bg-[#0d1c2d] border-t border-slate-700/30 px-6 py-4 flex justify-end items-center gap-3">
                 
                 <!-- Cancel Button -->
                 <button
                     type="button"
                     @click="open = false"
-                    class="px-6 py-2.5 rounded-lg text-sm font-semibold text-[#263143] hover:bg-slate-100 transition-colors active:scale-95">
+                    class="px-6 py-2.5 rounded-lg text-sm font-semibold text-[#c6c6cc] hover:bg-slate-800 transition-colors active:scale-95">
                     Batal
                 </button>
 

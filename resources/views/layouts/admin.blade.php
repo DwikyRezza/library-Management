@@ -52,7 +52,7 @@
                         && ! ($routeName === 'admin.members.index' && request()->routeIs('admin.members.pending'));
                 @endphp
                 <a href="{{ route($routeName) }}"
-                   class="flex items-center justify-between rounded-xl px-4 py-3 transition {{ $isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-950/30' : 'text-slate-300 hover:bg-slate-900 hover:text-white dark:text-on-surface-variant dark:hover:bg-surface-container-high dark:hover:text-on-surface' }}">
+                   class="flex items-center justify-between rounded-xl px-4 py-3 transition {{ $isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30' : 'text-slate-300 hover:bg-slate-900 hover:text-white dark:text-on-surface-variant dark:hover:bg-surface-container-high dark:hover:text-on-surface' }}">
                     <span class="font-semibold">{{ $label }}</span>
                     <span class="text-xs opacity-70">{{ $hint }}</span>
                 </a>

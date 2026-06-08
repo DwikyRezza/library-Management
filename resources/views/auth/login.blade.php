@@ -17,9 +17,9 @@
         <label class="mt-5 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"><input type="checkbox" name="remember" value="1" class="rounded border-slate-300 text-indigo-600"> Remember me</label>
         <button class="btn-primary mt-7 w-full" :disabled="submitting"><span x-text="submitting ? 'Signing in...' : 'Sign in'"></span></button>
         <div class="relative flex py-3 items-center">
-            <div class="flex-grow border-t border-slate-350 dark:border-slate-800"></div>
+            <div class="flex-grow border-t border-slate-300 dark:border-slate-800"></div>
             <span class="flex-shrink mx-4 text-xs text-slate-400 uppercase">Or</span>
-            <div class="flex-grow border-t border-slate-350 dark:border-slate-800"></div>
+            <div class="flex-grow border-t border-slate-300 dark:border-slate-800"></div>
         </div>
         <a href="{{ route('auth.google.redirect', 'staff') }}" class="flex items-center justify-center gap-3 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-850">
             <svg class="w-5 h-5 shrink-0" width="20" height="20" viewBox="0 0 24 24">
