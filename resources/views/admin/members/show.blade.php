@@ -95,7 +95,7 @@
 </div>
 
 @if (auth()->user()->isAdmin())
-    <x-danger-modal name="delete-member" title="Hapus member?" :action="route('admin.members.destroy', $member)">
+    <x-danger-modal name="delete-member" title="Hapus member?" :action="route('admin.members.destroy', $member)" confirm-label="Hapus member">
         Hapus member {{ $member->full_name }}? Member hanya dapat dihapus jika tidak memiliki peminjaman aktif.
     </x-danger-modal>
 @endif

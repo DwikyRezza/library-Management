@@ -5,6 +5,7 @@
     'method' => 'DELETE',
     'bookTitle' => null,
     'bookAuthor' => null,
+    'confirmLabel' => 'Hapus',
 ])
 
 <div x-data="{ open: false }"
@@ -12,7 +13,7 @@
      @keydown.escape.window="open = false"
      x-cloak
      x-show="open"
-     class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+     class="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
     <div x-show="open"
          x-transition.opacity
          @click="open = false"
@@ -20,12 +21,12 @@
 
     <div x-show="open"
          x-transition
-         class="panel relative z-10 w-full max-w-[500px] overflow-hidden">
-        <form method="POST" action="{{ $action }}" class="m-0">
+         class="panel relative z-10 flex max-h-[calc(100vh-2rem)] w-full max-w-[500px] overflow-hidden">
+        <form method="POST" action="{{ $action }}" class="m-0 flex max-h-[calc(100vh-2rem)] w-full flex-col">
             @csrf
             @method($method)
 
-            <div class="p-6">
+            <div class="overflow-y-auto p-6">
                 <div class="flex items-start gap-4">
                     <div class="grid size-12 shrink-0 place-items-center rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-400/10 dark:text-rose-200">
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -63,9 +64,9 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/80 px-6 py-4 dark:border-white/10 dark:bg-slate-950/30">
-                <button type="button" @click="open = false" class="btn-secondary">Batal</button>
-                <button type="submit" class="btn-danger">Hapus</button>
+            <div class="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/95 px-6 py-4 dark:border-white/10 dark:bg-slate-950/95 sm:flex-row sm:items-center sm:justify-end">
+                <button type="button" @click="open = false" class="btn-secondary w-full sm:w-auto">Batal</button>
+                <button type="submit" class="btn-danger w-full sm:w-auto">{{ $confirmLabel }}</button>
             </div>
         </form>
     </div>

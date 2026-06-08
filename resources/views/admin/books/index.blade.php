@@ -10,7 +10,7 @@
         <button type="button" @click="$dispatch('open-modal', 'delete-all-books')" class="btn-secondary text-rose-700 hover:bg-rose-50 dark:text-rose-200 dark:hover:bg-rose-400/10">
             Delete all
         </button>
-        <x-danger-modal name="delete-all-books" title="Hapus semua buku?" :action="route('admin.books.delete-all')">
+        <x-danger-modal name="delete-all-books" title="Hapus semua buku?" :action="route('admin.books.delete-all')" confirm-label="Hapus semua">
             Apakah Anda yakin ingin menghapus semua buku? Buku dengan peminjaman aktif tidak akan dihapus.
         </x-danger-modal>
     @else
@@ -92,7 +92,7 @@
                         <div class="flex flex-wrap items-center justify-end gap-2">
                             <a href="{{ route('admin.books.edit', $book) }}" class="btn-secondary px-3 py-2 text-xs">Edit</a>
                             <button type="button" @click="$dispatch('open-modal', 'delete-book-{{ $book->id }}')" class="btn-danger px-3 py-2 text-xs">Hapus</button>
-                            <x-danger-modal name="delete-book-{{ $book->id }}" title="Hapus buku?" :action="route('admin.books.destroy', $book)" :book-title="$book->title" :book-author="$book->author">
+                            <x-danger-modal name="delete-book-{{ $book->id }}" title="Hapus buku?" :action="route('admin.books.destroy', $book)" :book-title="$book->title" :book-author="$book->author" confirm-label="Hapus buku">
                                 Apakah Anda yakin ingin menghapus buku ini? Data akan dihapus secara lunak. Peminjaman aktif akan mencegah tindakan ini.
                             </x-danger-modal>
                         </div>

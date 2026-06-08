@@ -165,7 +165,7 @@
 
                 @if ($book->digitalAsset)
                     <button type="button" @click="$dispatch('open-modal', 'delete-digital-book')" class="btn-danger mt-3 w-full">Hapus buku digital</button>
-                    <x-danger-modal name="delete-digital-book" title="Hapus buku digital?" :action="route('admin.books.digital.destroy', [$book, $book->digitalAsset])">
+                    <x-danger-modal name="delete-digital-book" title="Hapus buku digital?" :action="route('admin.books.digital.destroy', [$book, $book->digitalAsset])" confirm-label="Hapus digital">
                         Hapus file PDF dan semua gambar privat yang sudah dirender untuk buku ini.
                     </x-danger-modal>
                 @endif
@@ -174,7 +174,7 @@
     </aside>
 </div>
 
-<x-danger-modal name="delete-book-detail" title="Hapus buku?" :action="route('admin.books.destroy', $book)" :book-title="$book->title" :book-author="$book->author">
+<x-danger-modal name="delete-book-detail" title="Hapus buku?" :action="route('admin.books.destroy', $book)" :book-title="$book->title" :book-author="$book->author" confirm-label="Hapus buku">
     Apakah Anda yakin ingin menghapus buku ini? Data akan dihapus secara lunak. Peminjaman aktif akan mencegah tindakan ini.
 </x-danger-modal>
 @endsection

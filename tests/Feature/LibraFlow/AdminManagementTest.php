@@ -160,6 +160,19 @@ class AdminManagementTest extends TestCase
             ->assertSee('Hapus buku');
     }
 
+    public function test_book_delete_modal_keeps_the_submit_action_visible(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $book = Book::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('admin.books.show', $book))
+            ->assertOk()
+            ->assertSee('max-h-[calc(100vh-2rem)]', false)
+            ->assertSee('sticky bottom-0', false)
+            ->assertSee('type="submit" class="btn-danger w-full sm:w-auto">Hapus buku</button>', false);
+    }
+
     public function test_member_index_exposes_delete_action_for_admins(): void
     {
         $user = User::factory()->create(['role' => User::ROLE_ADMIN]);

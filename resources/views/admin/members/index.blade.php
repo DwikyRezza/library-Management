@@ -55,7 +55,7 @@
                                     <a class="btn-secondary px-3 py-2 text-xs" href="{{ route('admin.members.show', $member) }}">View</a>
                                     @if (auth()->user()->isAdmin())
                                         <button type="button" @click="$dispatch('open-modal', 'delete-member-{{ $member->id }}')" class="btn-danger px-3 py-2 text-xs">Hapus member</button>
-                                        <x-danger-modal name="delete-member-{{ $member->id }}" title="Hapus member?" :action="route('admin.members.destroy', $member)">
+                                        <x-danger-modal name="delete-member-{{ $member->id }}" title="Hapus member?" :action="route('admin.members.destroy', $member)" confirm-label="Hapus member">
                                             Hapus member {{ $member->full_name }}? Member hanya dapat dihapus jika tidak memiliki peminjaman aktif.
                                         </x-danger-modal>
                                     @endif
