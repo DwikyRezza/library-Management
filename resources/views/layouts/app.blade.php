@@ -26,7 +26,9 @@
             </a>
             <nav class="flex items-center gap-2 sm:gap-3">
                 <a href="{{ route('books.search') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 sm:block dark:text-slate-300 dark:hover:bg-slate-800">Catalog</a>
-                <a href="{{ route('member.register') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 sm:block dark:text-slate-300 dark:hover:bg-slate-800">Membership</a>
+                @guest('member')
+                    <a href="{{ route('member.register') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 sm:block dark:text-slate-300 dark:hover:bg-slate-800">Membership</a>
+                @endguest
                 <button type="button" @click="toggleTheme()" class="grid size-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" aria-label="Toggle color theme">
                     <span x-text="dark ? 'Light' : 'Dark'" class="text-[10px] font-bold"></span>
                 </button>
