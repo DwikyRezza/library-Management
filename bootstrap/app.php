@@ -24,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands()
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(
-            fn (Request $request): string => $request->routeIs('member.reader.*', 'member.logout')
+            fn (Request $request): string => $request->is('member*', 'read*', 'reader*') || $request->routeIs('member.*')
                 ? route('member.login')
                 : route('login')
         );
