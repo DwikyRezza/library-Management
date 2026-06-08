@@ -64,6 +64,19 @@ class DigitalReaderTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_session_owner_can_open_the_reader_interface(): void
+    {
+        $member = Member::factory()->pending()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $session = $this->createReadingSession($member, $book, $asset);
+
+        $this->actingAs($member, 'member')
+            ->get(route('member.reader.show', $session))
+            ->assertOk()
+            ->assertSee($book->title)
+            ->assertSee('Halaman diberi watermark');
+    }
+
     public function test_page_response_is_a_private_watermarked_image(): void
     {
         config(['services.digital_reader.storage_disk' => 'local']);

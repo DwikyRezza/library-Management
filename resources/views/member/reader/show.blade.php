@@ -46,11 +46,11 @@
               window.addEventListener('beforeunload', () => this.heartbeat(true));
           }
       }"
-      @contextmenu.prevent
-      @copy.prevent
-      @cut.prevent
-      @dragstart.prevent
-      @keydown.window="
+      x-on:contextmenu.prevent
+      x-on:copy.prevent
+      x-on:cut.prevent
+      x-on:dragstart.prevent
+      x-on:keydown.window="
           if ((event.ctrlKey || event.metaKey) && ['s', 'p', 'u', 'c'].includes(event.key.toLowerCase())) event.preventDefault();
           if (event.key === 'ArrowLeft') changePage(page - 1);
           if (event.key === 'ArrowRight') changePage(page + 1);
@@ -62,9 +62,9 @@
                 <p class="text-xs text-slate-400">{{ auth('member')->user()->full_name }} · {{ auth('member')->user()->member_code }}</p>
             </div>
             <div class="flex items-center gap-2">
-                <button class="rounded-lg border border-slate-700 px-3 py-2 text-sm" @click="zoom = Math.max(60, zoom - 10)">-</button>
+                <button class="rounded-lg border border-slate-700 px-3 py-2 text-sm" x-on:click="zoom = Math.max(60, zoom - 10)">-</button>
                 <span class="w-12 text-center text-xs" x-text="zoom + '%'"></span>
-                <button class="rounded-lg border border-slate-700 px-3 py-2 text-sm" @click="zoom = Math.min(180, zoom + 10)">+</button>
+                <button class="rounded-lg border border-slate-700 px-3 py-2 text-sm" x-on:click="zoom = Math.min(180, zoom + 10)">+</button>
                 <a href="{{ route('books.search') }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold">Tutup</a>
             </div>
         </div>
@@ -79,8 +79,8 @@
             <div x-show="loading" class="absolute inset-0 z-10 grid min-h-96 place-items-center bg-slate-900/80 font-semibold">Memuat halaman...</div>
             <img :src="pageUrl()"
                  :style="`width: ${zoom}%; max-width: none;`"
-                 @load="loading = false"
-                 @error="loading = false"
+                 x-on:load="loading = false"
+                 x-on:error="loading = false"
                  alt="Halaman buku"
                  draggable="false"
                  class="mx-auto block h-auto min-w-[320px]">
@@ -89,9 +89,9 @@
 
     <footer class="sticky bottom-0 border-t border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur">
         <div class="mx-auto flex max-w-xl items-center justify-between gap-4">
-            <button class="rounded-xl border border-slate-700 px-4 py-2 font-bold disabled:opacity-40" @click="changePage(page - 1)" :disabled="page <= 1">Sebelumnya</button>
+            <button class="rounded-xl border border-slate-700 px-4 py-2 font-bold disabled:opacity-40" x-on:click="changePage(page - 1)" :disabled="page <= 1">Sebelumnya</button>
             <span class="text-sm font-semibold">Halaman <span x-text="page"></span> / {{ $asset->page_count }}</span>
-            <button class="rounded-xl bg-indigo-600 px-4 py-2 font-bold disabled:opacity-40" @click="changePage(page + 1)" :disabled="page >= total">Berikutnya</button>
+            <button class="rounded-xl bg-indigo-600 px-4 py-2 font-bold disabled:opacity-40" x-on:click="changePage(page + 1)" :disabled="page >= total">Berikutnya</button>
         </div>
     </footer>
 </body>
