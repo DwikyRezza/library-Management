@@ -9,8 +9,8 @@
             <button @click="$dispatch('open-modal', 'delete-all-books')" class="rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-50 dark:border-red-900 dark:bg-slate-900 dark:text-red-400 dark:hover:bg-red-950">
                 Delete All
             </button>
-            <x-danger-modal name="delete-all-books" title="Delete all books?" :action="route('admin.books.delete-all')">
-                Are you sure you want to delete all books? Books with active loans will not be deleted.
+            <x-danger-modal name="delete-all-books" title="Hapus semua buku?" :action="route('admin.books.delete-all')">
+                Apakah Anda yakin ingin menghapus semua buku? Buku dengan peminjaman aktif tidak akan dihapus.
             </x-danger-modal>
         @endif
     </div>
@@ -35,8 +35,8 @@
             <td class="px-5 py-4 text-right">
                 <a class="font-semibold text-indigo-600" href="{{ route('admin.books.edit', $book) }}">Edit</a>
                 <button @click="$dispatch('open-modal', 'delete-book-{{ $book->id }}')" class="ml-3 font-semibold text-red-600">Delete</button>
-                <x-danger-modal name="delete-book-{{ $book->id }}" title="Delete book?" :action="route('admin.books.destroy', $book)">
-                    Are you sure you want to delete this book? The record will be soft deleted. Active loans prevent this action.
+                <x-danger-modal name="delete-book-{{ $book->id }}" title="Hapus buku?" :action="route('admin.books.destroy', $book)" :book-title="$book->title" :book-author="$book->author">
+                    Apakah Anda yakin ingin menghapus buku ini? Data akan dihapus secara lunak. <span class="text-white font-semibold underline decoration-red-500/40">Peminjaman aktif mencegah tindakan ini.</span>
                 </x-danger-modal>
             </td>
         </tr>@endforeach</tbody>
