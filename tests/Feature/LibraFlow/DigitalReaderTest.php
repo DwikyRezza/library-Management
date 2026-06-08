@@ -66,6 +66,7 @@ class DigitalReaderTest extends TestCase
 
     public function test_page_response_is_a_private_watermarked_image(): void
     {
+        config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
 
         $member = Member::factory()->pending()->create();
@@ -97,6 +98,38 @@ class DigitalReaderTest extends TestCase
         $this->assertStringContainsString('no-store', $cacheControl);
         $this->assertStringNotContainsString('public', $cacheControl);
         $this->assertStringNotContainsString('.pdf', $response->headers->get('content-disposition', ''));
+    }
+
+    public function test_page_response_can_stream_watermarked_images_from_the_configured_disk(): void
+    {
+        config(['services.digital_reader.storage_disk' => 's3']);
+        Storage::fake('s3');
+
+        $member = Member::factory()->pending()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $session = $this->createReadingSession($member, $book, $asset);
+
+        $this->app->instance(PageWatermarker::class, new class implements PageWatermarker
+        {
+            public function watermark(
+                DigitalBookAsset $asset,
+                Member $member,
+                ReadingSession $session,
+                int $page
+            ): string {
+                $path = "digital-books/{$asset->uuid}/watermarked/{$session->uuid}/page-0001.png";
+                Storage::disk('s3')->put($path, 'private-image-from-s3');
+
+                return $path;
+            }
+        });
+
+        $response = $this->actingAs($member, 'member')
+            ->get(route('member.reader.page', [$session, 1]));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'image/png');
+        $this->assertSame('private-image-from-s3', $response->streamedContent());
     }
 
     public function test_heartbeat_updates_last_page_and_caps_recorded_duration(): void

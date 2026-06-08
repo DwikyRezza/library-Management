@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class BookService
 {
@@ -17,7 +18,7 @@ class BookService
 
     public function create(array $data, ?UploadedFile $coverImage = null, ?UploadedFile $pdf = null): Book
     {
-        return DB::transaction(function () use ($data, $coverImage, $pdf): Book {
+        return DB::transaction(function () use ($data, $coverImage): Book {
             $slug = $this->uniqueSlug($data['title']);
 
             $coverPath = $coverImage
@@ -34,7 +35,7 @@ class BookService
                     'category_id',
                     'description',
                 ]),
-                'slug'        => $slug,
+                'slug' => $slug,
                 'cover_image' => $coverPath,
             ]);
 
@@ -50,7 +51,7 @@ class BookService
 
     public function update(Book $book, array $data, ?UploadedFile $coverImage = null, ?UploadedFile $pdf = null): Book
     {
-        return DB::transaction(function () use ($book, $data, $coverImage, $pdf): Book {
+        return DB::transaction(function () use ($book, $data, $coverImage): Book {
             $book->fill(Arr::only($data, [
                 'title',
                 'author',
@@ -89,10 +90,10 @@ class BookService
                 $copyNumber = $currentCount + $index;
 
                 BookCopy::query()->create([
-                    'book_id'        => $book->id,
-                    'copy_code'      => sprintf('LIB-%04d-%03d', $book->id, $copyNumber),
+                    'book_id' => $book->id,
+                    'copy_code' => sprintf('LIB-%04d-%03d', $book->id, $copyNumber),
                     'shelf_location' => $shelfLocation,
-                    'status'         => BookCopy::STATUS_AVAILABLE,
+                    'status' => BookCopy::STATUS_AVAILABLE,
                 ]);
             }
 
@@ -112,7 +113,7 @@ class BookService
             }
 
             $copy->forceFill([
-                'status'         => $status,
+                'status' => $status,
                 'condition_note' => $conditionNote,
             ])->save();
 
@@ -147,18 +148,22 @@ class BookService
 
     private function uploadCover(UploadedFile $file, string $slug): string
     {
-        $ext  = $file->getClientOriginalExtension();
+        $ext = $file->getClientOriginalExtension();
         $path = "book-covers/{$slug}.{$ext}";
 
-        Storage::disk('s3')->put($path, $file->get(), 'public');
+        $stored = Storage::disk('s3')->put($path, $file->get(), 'public');
+
+        if ($stored === false) {
+            throw new RuntimeException('Gagal menyimpan cover buku. Periksa konfigurasi S3.');
+        }
 
         return $path;
     }
 
     private function uniqueSlug(string $title, ?Book $ignore = null): string
     {
-        $base    = Str::slug($title);
-        $slug    = $base;
+        $base = Str::slug($title);
+        $slug = $base;
         $counter = 2;
 
         while (Book::query()

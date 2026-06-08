@@ -70,6 +70,18 @@ class MemberAuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($member, 'member');
     }
 
+    public function test_authenticated_member_navigation_shows_account_menu_instead_of_login_link(): void
+    {
+        $member = Member::factory()->create(['first_name' => 'Rani']);
+
+        $this->actingAs($member, 'member')
+            ->get('/books/search')
+            ->assertOk()
+            ->assertSee('Setting Profil')
+            ->assertSee('Keluar')
+            ->assertDontSee('Login member');
+    }
+
     public function test_rejected_member_cannot_login(): void
     {
         Member::factory()->rejected()->create([

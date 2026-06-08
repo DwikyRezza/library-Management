@@ -14,7 +14,7 @@ class StoreDigitalBookRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pdf' => ['required', 'file', 'mimes:pdf', 'max:51200'],
+            'pdf' => ['required', 'file', 'mimes:pdf', 'max:102400'],
         ];
     }
 }

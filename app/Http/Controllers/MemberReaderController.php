@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MemberReaderController extends Controller
 {
@@ -43,7 +43,7 @@ class MemberReaderController extends Controller
         ReadingSession $readingSession,
         int $page,
         PageWatermarker $watermarker
-    ): BinaryFileResponse {
+    ): StreamedResponse {
         $this->ensureOwner($readingSession);
         $readingSession->loadMissing(['member', 'digitalBookAsset']);
         $asset = $readingSession->digitalBookAsset;
@@ -51,8 +51,15 @@ class MemberReaderController extends Controller
         abort_unless($asset?->isReady() && $page >= 1 && $page <= $asset->page_count, 404);
 
         $path = $watermarker->watermark($asset, $readingSession->member, $readingSession, $page);
+        $disk = Storage::disk($this->digitalBookDiskName());
+        $stream = $disk->readStream($path);
 
-        $response = response()->file(Storage::disk('local')->path($path), [
+        abort_unless(is_resource($stream), 404);
+
+        $response = response()->stream(static function () use ($stream): void {
+            fpassthru($stream);
+            fclose($stream);
+        }, 200, [
             'Content-Type' => 'image/png',
             'Content-Disposition' => 'inline; filename="page.png"',
             'X-Content-Type-Options' => 'nosniff',
@@ -95,5 +102,10 @@ class MemberReaderController extends Controller
     private function ensureOwner(ReadingSession $session): void
     {
         abort_unless($session->member_id === Auth::guard('member')->id(), 404);
+    }
+
+    private function digitalBookDiskName(): string
+    {
+        return (string) config('services.digital_reader.storage_disk', config('filesystems.default', 'local'));
     }
 }

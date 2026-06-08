@@ -20,6 +20,7 @@ class AdminDigitalBookTest extends TestCase
 
     public function test_admin_can_upload_a_pdf_to_private_storage_and_queue_rendering(): void
     {
+        config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
         Queue::fake();
 
@@ -42,6 +43,7 @@ class AdminDigitalBookTest extends TestCase
 
     public function test_librarian_cannot_upload_a_digital_book(): void
     {
+        config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
 
         $librarian = User::factory()->create(['role' => User::ROLE_LIBRARIAN]);
@@ -58,6 +60,7 @@ class AdminDigitalBookTest extends TestCase
 
     public function test_admin_upload_rejects_non_pdf_files(): void
     {
+        config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
 
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
@@ -92,6 +95,7 @@ class AdminDigitalBookTest extends TestCase
 
     public function test_replacing_a_pdf_preserves_existing_reading_history(): void
     {
+        config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
         Queue::fake();
 

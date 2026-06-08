@@ -2,13 +2,12 @@
 
 namespace Tests\Feature\LibraFlow;
 
+use App\Models\Book;
+use App\Models\BookCategory;
 use App\Models\Branch;
 use App\Models\Member;
 use App\Models\MemberCategory;
-use App\Models\Book;
-use App\Models\BookCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 class MemberProfileTest extends TestCase
@@ -18,7 +17,7 @@ class MemberProfileTest extends TestCase
     public function test_guest_cannot_access_profile_page(): void
     {
         $response = $this->get('/member/profile');
-        $response->assertRedirect('/login'); // Redirect to login as guest
+        $response->assertRedirect(route('member.login'));
     }
 
     public function test_member_can_access_profile_page(): void

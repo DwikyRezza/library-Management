@@ -3,6 +3,7 @@
 return [
 
     'digital_reader' => [
+        'storage_disk' => env('DIGITAL_BOOK_DISK', env('FILESYSTEM_DISK', 'local')),
         'node_binary' => env('PDF_RENDER_NODE_BINARY', 'node'),
         'render_scale' => env('PDF_RENDER_SCALE', 1.6),
         'render_timeout' => env('PDF_RENDER_TIMEOUT', 600),

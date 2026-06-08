@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 class DigitalBookService
@@ -18,7 +19,12 @@ class DigitalBookService
     {
         $uuid = (string) Str::uuid();
         $directory = "digital-books/{$uuid}";
-        $path = $pdf->storeAs($directory, 'original.pdf', 's3');
+        $disk = Storage::disk($this->diskName());
+        $path = $disk->putFileAs($directory, $pdf, 'original.pdf');
+
+        if ($path === false) {
+            throw new RuntimeException('Gagal menyimpan PDF buku digital. Periksa konfigurasi storage.');
+        }
 
         try {
             $previous = $book->digitalAsset()->first();
@@ -44,13 +50,13 @@ class DigitalBookService
                 ]);
             });
         } catch (Throwable $exception) {
-            Storage::disk('s3')->deleteDirectory($directory);
+            $disk->deleteDirectory($directory);
 
             throw $exception;
         }
 
         if ($previous) {
-            Storage::disk('s3')->deleteDirectory("digital-books/{$previous->uuid}");
+            $disk->deleteDirectory("digital-books/{$previous->uuid}");
         }
 
         RenderDigitalBook::dispatch($asset->id)->afterCommit();
@@ -68,6 +74,11 @@ class DigitalBookService
                 ->update(['ended_at' => now()]);
             $asset->delete();
         });
-        Storage::disk('s3')->deleteDirectory($directory);
+        Storage::disk($this->diskName())->deleteDirectory($directory);
+    }
+
+    private function diskName(): string
+    {
+        return (string) config('services.digital_reader.storage_disk', config('filesystems.default', 'local'));
     }
 }

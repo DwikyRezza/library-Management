@@ -164,9 +164,9 @@ class ProductionReadinessTest extends TestCase
         $this->assertStringContainsString("APP_KEY=\n", $environment);
         $this->assertStringContainsString("DB_PASSWORD=\n", $environment);
 
-        $this->assertStringContainsString('client_max_body_size 64m;', $nginx);
-        $this->assertStringContainsString('upload_max_filesize = 50M', $php);
-        $this->assertStringContainsString('post_max_size = 64M', $php);
+        $this->assertStringContainsString('client_max_body_size 128m;', $nginx);
+        $this->assertStringContainsString('upload_max_filesize = 100M', $php);
+        $this->assertStringContainsString('post_max_size = 128M', $php);
         $this->assertStringContainsString('--timeout=660', $supervisor);
         $this->assertStringContainsString('stopwaitsecs=700', $supervisor);
         $this->assertStringContainsString('app:production-check', $predeploy);

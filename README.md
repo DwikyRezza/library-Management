@@ -859,7 +859,7 @@ Folder source lain tidak perlu diberi permission `777`.
 
 ### 11.14 Pasang Konfigurasi PHP-FPM
 
-Template PHP menyelaraskan batas server dengan validasi upload PDF 50 MB:
+Template PHP menyelaraskan batas server dengan validasi upload PDF 100 MB:
 
 ```bash
 sudo cp deploy/php/99-libraflow.ini /etc/php/8.3/fpm/conf.d/99-libraflow.ini
