@@ -106,3 +106,461 @@ Layer bisnis logika (business logic) terpisah yang menjaga agar Controller tetap
   - `auth:member` untuk akses in-app reader & dashboard profil.
   - `auth` & `staff.active` untuk workspace admin/staff.
   - Middleware khusus `admin.only` untuk fungsi krusial e-book upload dan audit membaca.
+
+---
+
+## Panduan Next Step Deploy AWS EC2 + RDS + S3
+
+Bagian ini adalah checklist praktis setelah kode siap dideploy. Target arsitektur:
+
+```text
+Browser user
+    -> Nginx di EC2
+    -> Laravel PHP-FPM di EC2
+    -> RDS MySQL untuk database, session, cache, queue
+    -> S3 private bucket untuk cover, PDF original, hasil render, dan watermark
+    -> Supervisor queue worker di EC2 untuk render PDF digital
+```
+
+Jangan menaruh password, access key, atau isi file `.env` di Git, chat, atau dokumentasi publik.
+
+### 1. Siapkan AWS RDS MySQL
+
+1. Buat RDS dengan engine MySQL.
+2. Simpan informasi berikut:
+   - endpoint RDS, contoh `libraflow.xxxxxx.ap-southeast-1.rds.amazonaws.com`;
+   - port, biasanya `3306`;
+   - database name, contoh `libraflow`;
+   - username dan password database.
+3. Security Group RDS:
+   - inbound MySQL/Aurora `3306`;
+   - source gunakan Security Group EC2, bukan `0.0.0.0/0`.
+4. Jika RDS dibuat private, pastikan EC2 dan RDS berada dalam VPC yang sama atau routing VPC-nya benar.
+
+Tes koneksi dari EC2:
+
+```bash
+mysql -h ENDPOINT_RDS -P 3306 -u USER_RDS -p
+```
+
+Jika gagal, biasanya penyebabnya Security Group RDS, subnet/VPC, username/password, atau database belum dibuat.
+
+### 2. Siapkan AWS S3
+
+1. Buat bucket S3, misalnya `libraflow-production-files`.
+2. Aktifkan Block Public Access.
+3. Jangan membuat PDF atau folder `digital-books` menjadi public.
+4. Buat IAM user/role khusus aplikasi. Permission minimalnya untuk bucket:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::NAMA_BUCKET",
+        "arn:aws:s3:::NAMA_BUCKET/*"
+      ]
+    }
+  ]
+}
+```
+
+Untuk production yang lebih aman, gunakan IAM Role di EC2. Jika masih memakai access key, simpan hanya di `.env` server.
+
+### 3. Siapkan EC2
+
+Gunakan Ubuntu 24.04 LTS atau Ubuntu yang kompatibel dengan PHP 8.3. Login via PuTTY sebagai user `ubuntu`.
+
+Update server:
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+
+Install dependency server:
+
+```bash
+sudo apt install -y nginx git unzip curl supervisor mysql-client \
+    php8.3-fpm php8.3-cli php8.3-mysql php8.3-sqlite3 \
+    php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath
+```
+
+Install Composer:
+
+```bash
+cd /tmp
+curl -sS https://getcomposer.org/installer -o composer-setup.php
+php composer-setup.php
+sudo mv composer.phar /usr/local/bin/composer
+composer --version
+```
+
+Install Node.js 22.13.0 atau lebih baru. Renderer PDF membutuhkan Node modern.
+
+```bash
+node --version
+npm --version
+```
+
+### 4. Upload Source Code ke EC2
+
+Contoh jika memakai Git:
+
+```bash
+cd /var/www
+sudo git clone URL_REPOSITORY_ANDA library-management
+sudo chown -R ubuntu:www-data /var/www/library-management
+cd /var/www/library-management
+```
+
+Jika repository private, gunakan deploy key atau cara autentikasi dari Git hosting. Jangan hardcode token di file project.
+
+### 5. Install Dependency Aplikasi
+
+```bash
+cd /var/www/library-management
+composer install --no-interaction --prefer-dist --optimize-autoloader
+npm ci
+npm run build
+```
+
+Jika `npm run build` gagal karena Node terlalu lama, upgrade Node dulu.
+
+### 6. Buat dan Isi `.env` Production
+
+Di server:
+
+```bash
+cp .env.production.example .env
+nano .env
+```
+
+Isi minimal seperti ini. Ganti semua placeholder, jangan copy password contoh:
+
+```dotenv
+APP_NAME=LibraFlow
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://domain-kamu.com
+
+DB_CONNECTION=mysql
+DB_HOST=ENDPOINT_RDS
+DB_PORT=3306
+DB_DATABASE=libraflow
+DB_USERNAME=USER_RDS
+DB_PASSWORD=PASSWORD_RDS
+
+SESSION_DRIVER=database
+SESSION_ENCRYPT=true
+SESSION_PATH=/
+SESSION_DOMAIN=null
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+DB_QUEUE_RETRY_AFTER=720
+
+FILESYSTEM_DISK=s3
+DIGITAL_BOOK_DISK=s3
+AWS_ACCESS_KEY_ID=ISI_JIKA_TIDAK_PAKAI_IAM_ROLE
+AWS_SECRET_ACCESS_KEY=ISI_JIKA_TIDAK_PAKAI_IAM_ROLE
+AWS_DEFAULT_REGION=ap-southeast-1
+AWS_BUCKET=NAMA_BUCKET
+AWS_USE_PATH_STYLE_ENDPOINT=false
+AWS_THROW=true
+
+PDF_RENDER_NODE_BINARY=/usr/bin/node
+PDF_RENDER_TIMEOUT=600
+PDF_JOB_TIMEOUT=660
+PDF_WATERMARK_TIMEOUT=60
+```
+
+Jika masih testing lewat `http://IP_EC2` dan belum memakai HTTPS:
+
+```dotenv
+APP_URL=http://IP_EC2
+SESSION_SECURE_COOKIE=false
+```
+
+Jika sudah memakai domain dan HTTPS:
+
+```dotenv
+APP_URL=https://domain-kamu.com
+SESSION_SECURE_COOKIE=true
+```
+
+Masalah member sudah login tapi menu masih menampilkan "Login member" hampir selalu terjadi karena `SESSION_SECURE_COOKIE=true` tetapi web dibuka lewat HTTP. Browser tidak mengirim cookie secure pada request HTTP.
+
+Generate app key:
+
+```bash
+php artisan key:generate
+```
+
+### 7. Jalankan Migration dan Buat Admin
+
+```bash
+php artisan migrate --force
+php artisan app:create-admin
+```
+
+Jangan jalankan `migrate:fresh` atau seeder dummy di production karena bisa menghapus data.
+
+### 8. Permission Folder Laravel
+
+```bash
+sudo chown -R www-data:www-data /var/www/library-management/storage
+sudo chown -R www-data:www-data /var/www/library-management/bootstrap/cache
+sudo chmod -R 775 /var/www/library-management/storage
+sudo chmod -R 775 /var/www/library-management/bootstrap/cache
+```
+
+Jangan gunakan `chmod 777` kecuali benar-benar darurat dan sementara.
+
+### 9. Pasang Config PHP-FPM Upload
+
+Project ini mendukung upload PDF sampai 100 MB. Pasang template PHP:
+
+```bash
+sudo cp deploy/php/99-libraflow.ini /etc/php/8.3/fpm/conf.d/99-libraflow.ini
+sudo systemctl restart php8.3-fpm
+```
+
+Cek:
+
+```bash
+php-fpm8.3 -i | grep -E "upload_max_filesize|post_max_size"
+```
+
+Nilai yang diharapkan:
+
+```text
+upload_max_filesize => 100M
+post_max_size => 128M
+```
+
+### 10. Pasang Nginx
+
+```bash
+sudo cp deploy/nginx/libraflow.conf /etc/nginx/sites-available/libraflow
+sudo nano /etc/nginx/sites-available/libraflow
+```
+
+Ubah:
+
+```nginx
+server_name domain-kamu.com www.domain-kamu.com;
+root /var/www/library-management/public;
+```
+
+Aktifkan:
+
+```bash
+sudo ln -sfn /etc/nginx/sites-available/libraflow /etc/nginx/sites-enabled/libraflow
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Jika `nginx -t` gagal, jangan reload sampai error diperbaiki.
+
+### 11. Pasang Queue Worker Supervisor
+
+PDF digital tidak langsung siap setelah upload. Worker harus hidup supaya job render berjalan.
+
+```bash
+sudo cp deploy/supervisor/libraflow-worker.conf /etc/supervisor/conf.d/libraflow-worker.conf
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start libraflow-worker:*
+sudo supervisorctl status
+```
+
+Status yang diharapkan:
+
+```text
+libraflow-worker:libraflow-worker_00 RUNNING
+```
+
+Jika upload PDF berhasil tetapi status buku digital tetap `processing`, cek worker:
+
+```bash
+sudo supervisorctl status
+tail -n 100 storage/logs/worker.log
+tail -n 100 storage/logs/laravel-*.log
+```
+
+### 12. Aktifkan HTTPS
+
+Jika memakai domain:
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d domain-kamu.com -d www.domain-kamu.com
+sudo certbot renew --dry-run
+```
+
+Setelah HTTPS aktif, pastikan `.env`:
+
+```dotenv
+APP_URL=https://domain-kamu.com
+SESSION_SECURE_COOKIE=true
+```
+
+Lalu bersihkan cache Laravel:
+
+```bash
+php artisan optimize:clear
+php artisan optimize
+```
+
+### 13. Jalankan Production Check
+
+```bash
+cd /var/www/library-management
+php artisan app:production-check
+```
+
+Jika command ini gagal, baca pesannya satu per satu. Biasanya yang belum benar:
+
+- `APP_URL` masih placeholder;
+- `APP_DEBUG` masih `true`;
+- `APP_KEY` kosong;
+- database RDS belum tersambung;
+- `SESSION_SECURE_COOKIE` tidak sesuai kondisi HTTPS;
+- Node.js tidak ditemukan di `PDF_RENDER_NODE_BINARY`;
+- permission `storage` atau `bootstrap/cache` salah.
+
+### 14. Deploy / Update Aplikasi
+
+Untuk deploy awal setelah semua konfigurasi benar:
+
+```bash
+bash deploy/scripts/predeploy-check.sh
+bash deploy/scripts/deploy.sh
+```
+
+Untuk update berikutnya:
+
+```bash
+cd /var/www/library-management
+git pull
+bash deploy/scripts/deploy.sh
+```
+
+Catatan:
+
+- jangan menjalankan `git reset --hard` kecuali sudah paham efeknya;
+- backup RDS sebelum migration besar;
+- script deploy tidak otomatis melakukan `git pull`;
+- script deploy menjalankan test, build asset, migration, optimize cache, dan restart queue.
+
+### 15. Checklist Uji Setelah Deploy
+
+Buka web dan cek:
+
+- halaman `/` terbuka;
+- `/up` mengembalikan status 200;
+- `/health/ready` mengembalikan `{"status":"ready"}`;
+- login admin `/login` berhasil;
+- login member `/member/login` berhasil dan menu berubah menjadi akun member, bukan "Login member";
+- tambah buku tanpa PDF berhasil;
+- upload cover ke S3 berhasil;
+- upload PDF digital berhasil;
+- status PDF berubah dari `processing` menjadi `ready`;
+- member bisa klik `Read`;
+- halaman reader tampil sebagai gambar ber-watermark;
+- logout member berhasil;
+- `sudo supervisorctl status` tetap `RUNNING`;
+- log Laravel tidak berisi error baru.
+
+### 16. Troubleshooting Cepat
+
+#### Member sudah login tapi masih muncul tombol Login member
+
+Cek `.env`:
+
+```dotenv
+APP_URL=http://IP_EC2
+SESSION_SECURE_COOKIE=false
+```
+
+untuk HTTP sementara, atau:
+
+```dotenv
+APP_URL=https://domain-kamu.com
+SESSION_SECURE_COOKIE=true
+```
+
+untuk HTTPS production.
+
+Setelah mengubah `.env`, jalankan:
+
+```bash
+php artisan optimize:clear
+php artisan optimize
+sudo systemctl reload php8.3-fpm
+```
+
+Pastikan juga `SESSION_DOMAIN=null` jika belum memakai subdomain khusus.
+
+#### Tidak bisa upload buku atau PDF
+
+Cek berurutan:
+
+1. PHP upload limit sudah `100M` dan `128M`.
+2. Nginx `client_max_body_size` sudah `128m`.
+3. `.env` memakai `FILESYSTEM_DISK=s3` dan `DIGITAL_BOOK_DISK=s3`.
+4. `AWS_BUCKET` benar.
+5. `AWS_DEFAULT_REGION` sama dengan region bucket.
+6. IAM key/role punya izin `PutObject`, `GetObject`, `DeleteObject`, dan `ListBucket`.
+7. `AWS_THROW=true` supaya error S3 muncul jelas di log.
+8. Queue worker Supervisor `RUNNING`.
+
+Command cek log:
+
+```bash
+tail -n 100 storage/logs/laravel-*.log
+tail -n 100 storage/logs/worker.log
+sudo supervisorctl status
+```
+
+#### Upload PDF berhasil tapi tidak bisa dibaca member
+
+Cek:
+
+```bash
+sudo supervisorctl status
+php artisan queue:failed
+tail -n 100 storage/logs/worker.log
+```
+
+Kemungkinan:
+
+- worker tidak jalan;
+- Node.js tidak tersedia atau versinya terlalu lama;
+- `PDF_RENDER_NODE_BINARY` salah;
+- EC2 tidak punya permission membaca/menulis S3;
+- PDF rusak, terenkripsi, atau terlalu berat.
+
+#### Web 500 setelah deploy
+
+Jalankan:
+
+```bash
+php artisan optimize:clear
+php artisan app:production-check
+tail -n 100 storage/logs/laravel-*.log
+```
+
+Jangan aktifkan `APP_DEBUG=true` untuk publik. Jika perlu debug, batasi sementara dan matikan lagi setelah selesai.
