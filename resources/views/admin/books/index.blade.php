@@ -9,18 +9,9 @@
             <button @click="$dispatch('open-modal', 'delete-all-books')" class="rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-50 dark:border-red-900 dark:bg-slate-900 dark:text-red-400 dark:hover:bg-red-950">
                 Delete All
             </button>
-            <x-modal name="delete-all-books" title="Delete all books?">
-                <div class="p-1">
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Are you sure you want to delete all books? Books with active loans will not be deleted.</p>
-                </div>
-                <x-slot:actions>
-                    <form method="POST" action="{{ route('admin.books.delete-all') }}">
-                        @csrf
-                        @method('DELETE')
-                        <button class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-500">Delete All</button>
-                    </form>
-                </x-slot:actions>
-            </x-modal>
+            <x-danger-modal name="delete-all-books" title="Delete all books?" :action="route('admin.books.delete-all')">
+                Are you sure you want to delete all books? Books with active loans will not be deleted.
+            </x-danger-modal>
         @endif
     </div>
     <a href="{{ route('admin.books.create') }}" class="btn-primary">Add book</a>
@@ -44,18 +35,9 @@
             <td class="px-5 py-4 text-right">
                 <a class="font-semibold text-indigo-600" href="{{ route('admin.books.edit', $book) }}">Edit</a>
                 <button @click="$dispatch('open-modal', 'delete-book-{{ $book->id }}')" class="ml-3 font-semibold text-red-600">Delete</button>
-                <x-modal name="delete-book-{{ $book->id }}" title="Delete book?">
-                    <div class="p-1 text-left">
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Are you sure you want to delete this book? The record will be soft deleted. Active loans prevent this action.</p>
-                    </div>
-                    <x-slot:actions>
-                        <form method="POST" action="{{ route('admin.books.destroy', $book) }}">
-                            @csrf
-                            @method('DELETE')
-                            <button class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-500">Delete</button>
-                        </form>
-                    </x-slot:actions>
-                </x-modal>
+                <x-danger-modal name="delete-book-{{ $book->id }}" title="Delete book?" :action="route('admin.books.destroy', $book)">
+                    Are you sure you want to delete this book? The record will be soft deleted. Active loans prevent this action.
+                </x-danger-modal>
             </td>
         </tr>@endforeach</tbody>
     </table></div></div>
