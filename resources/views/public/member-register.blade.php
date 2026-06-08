@@ -5,8 +5,8 @@
 @section('content')
 <section class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
     <div>
-        <p class="font-bold text-indigo-600 dark:text-indigo-400">Membership</p>
-        <h1 class="mt-2 text-4xl font-black">Open the door to more learning.</h1>
+        <p class="section-kicker">Membership</p>
+        <h1 class="mt-2 text-4xl font-black text-slate-950 dark:text-white">Open the door to more learning.</h1>
         <p class="mt-4 leading-7 text-slate-500 dark:text-slate-400">Daftar sekali untuk membaca koleksi digital. Persetujuan pustakawan hanya diperlukan untuk peminjaman buku fisik.</p>
         <div class="panel mt-8 p-5">
             <h2 class="font-bold">What happens next?</h2>
@@ -34,13 +34,13 @@
             <button class="btn-primary w-full" :disabled="submitting">
                 <span x-text="submitting ? 'Submitting...' : 'Submit registration'"></span>
             </button>
-            <div class="relative flex py-3 items-center">
-                <div class="flex-grow border-t border-slate-300 dark:border-slate-800"></div>
-                <span class="flex-shrink mx-4 text-xs text-slate-400 uppercase">Atau</span>
-                <div class="flex-grow border-t border-slate-300 dark:border-slate-800"></div>
+            <div class="relative flex items-center py-3">
+                <div class="flex-grow border-t border-slate-200 dark:border-white/10"></div>
+                <span class="mx-4 flex-shrink text-xs uppercase text-slate-400">Atau</span>
+                <div class="flex-grow border-t border-slate-200 dark:border-white/10"></div>
             </div>
-            <a href="{{ route('auth.google.redirect', 'member') }}" class="flex items-center justify-center gap-3 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-850">
-                <svg class="w-5 h-5 shrink-0" width="20" height="20" viewBox="0 0 24 24">
+            <a href="{{ route('auth.google.redirect', 'member') }}" class="btn-secondary w-full gap-3">
+                <svg class="size-5 shrink-0" width="20" height="20" viewBox="0 0 24 24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>

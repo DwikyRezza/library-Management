@@ -147,6 +147,31 @@ class AdminManagementTest extends TestCase
         }
     }
 
+    public function test_book_detail_exposes_edit_and_delete_actions(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $book = Book::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('admin.books.show', $book))
+            ->assertOk()
+            ->assertSee(route('admin.books.edit', $book), false)
+            ->assertSee(route('admin.books.destroy', $book), false)
+            ->assertSee('Hapus buku');
+    }
+
+    public function test_member_index_exposes_delete_action_for_admins(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $member = Member::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('admin.members.index'))
+            ->assertOk()
+            ->assertSee(route('admin.members.destroy', $member), false)
+            ->assertSee('Hapus member');
+    }
+
     public function test_admin_can_delete_a_book(): void
     {
         $user = User::factory()->create();

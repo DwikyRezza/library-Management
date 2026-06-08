@@ -17,41 +17,41 @@
         <x-empty-state title="Belum ada aktivitas membaca" message="Sesi akan muncul ketika member membuka buku digital." />
     @else
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800/70 dark:text-slate-400">
+            <table class="soft-table">
+                <thead>
                     <tr>
-                        <th class="px-5 py-4">Member</th>
-                        <th class="px-5 py-4">Buku</th>
-                        <th class="px-5 py-4">Aktivitas</th>
-                        <th class="px-5 py-4">Halaman</th>
-                        <th class="px-5 py-4">Durasi</th>
-                        <th class="px-5 py-4"></th>
+                        <th>Member</th>
+                        <th>Buku</th>
+                        <th>Aktivitas</th>
+                        <th>Halaman</th>
+                        <th>Durasi</th>
+                        <th class="text-right">Detail</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody>
                     @foreach ($sessions as $session)
                         <tr>
-                            <td class="px-5 py-4">
+                            <td>
                                 <p class="font-bold">{{ $session->member->full_name }}</p>
-                                <p class="text-xs text-slate-500">{{ $session->member->member_code }} · {{ $session->member->email }}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ $session->member->member_code }} - {{ $session->member->email }}</p>
                             </td>
-                            <td class="px-5 py-4">
+                            <td>
                                 <p class="font-semibold">{{ $session->book->title }}</p>
-                                <p class="text-xs text-slate-500">{{ $session->book->author }}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ $session->book->author }}</p>
                             </td>
-                            <td class="px-5 py-4 text-xs">
+                            <td class="text-xs">
                                 <p>Mulai {{ $session->started_at->format('d M Y H:i') }}</p>
-                                <p class="text-slate-500">Aktif {{ $session->last_active_at->diffForHumans() }}</p>
+                                <p class="text-slate-500 dark:text-slate-400">Aktif {{ $session->last_active_at->diffForHumans() }}</p>
                             </td>
-                            <td class="px-5 py-4">{{ $session->last_page }} / {{ $session->digital_book_asset_id ? $session->max_page : '-' }}</td>
-                            <td class="px-5 py-4">{{ gmdate('H:i:s', $session->duration_seconds) }}</td>
-                            <td class="px-5 py-4 text-right"><a class="font-bold text-indigo-600" href="{{ route('admin.reading-history.show', $session) }}">Detail</a></td>
+                            <td>{{ $session->last_page }} / {{ $session->digital_book_asset_id ? $session->max_page : '-' }}</td>
+                            <td>{{ gmdate('H:i:s', $session->duration_seconds) }}</td>
+                            <td class="text-right"><a class="subtle-link" href="{{ route('admin.reading-history.show', $session) }}">Detail</a></td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
-        <div class="border-t border-slate-200 p-4 dark:border-slate-800">{{ $sessions->links() }}</div>
+        <div class="border-t border-slate-200 p-4 dark:border-white/10">{{ $sessions->links() }}</div>
     @endif
 </div>
 @endsection

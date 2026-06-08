@@ -5,27 +5,27 @@
 @section('content')
 <section class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
     <div>
-        <p class="font-bold text-indigo-600 dark:text-indigo-400">Profil Keanggotaan</p>
-        <h1 class="mt-2 text-4xl font-black">Lengkapi Data Diri Anda.</h1>
-        <p class="mt-4 leading-7 text-slate-500 dark:text-slate-400">Sebelum dapat menjelajahi buku dan menggunakan fasilitas perpustakaan secara penuh, harap lengkapi data profil keanggotaan Anda di sebelah kanan.</p>
-        
+        <p class="section-kicker">Profil Keanggotaan</p>
+        <h1 class="mt-2 text-4xl font-black text-slate-950 dark:text-white">Lengkapi data diri Anda.</h1>
+        <p class="mt-4 leading-7 text-slate-500 dark:text-slate-400">Lengkapi data profil keanggotaan agar layanan perpustakaan bisa digunakan secara penuh.</p>
+
         <div class="panel mt-8 p-5">
-            <h2 class="font-bold">Informasi Alur Approval</h2>
+            <h2 class="font-bold">Informasi alur approval</h2>
             <ol class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                <li><strong>1.</strong> Lengkapi data diri asli Anda (NIM/Roll Number, Jurusan, dll).</li>
-                <li><strong>2.</strong> Kirim pembaruan profil Anda.</li>
-                <li><strong>3.</strong> Pustakawan akan memverifikasi data Anda untuk menyetujui akun (Status: Approved).</li>
-                <li><strong>4.</strong> Setelah disetujui, Anda dapat meminjam buku fisik di perpustakaan secara langsung.</li>
+                <li><strong>1.</strong> Lengkapi data diri asli Anda.</li>
+                <li><strong>2.</strong> Kirim pembaruan profil.</li>
+                <li><strong>3.</strong> Pustakawan akan memverifikasi data untuk menyetujui akun.</li>
+                <li><strong>4.</strong> Setelah disetujui, Anda dapat meminjam buku fisik di perpustakaan.</li>
             </ol>
         </div>
     </div>
 
     <div>
         @if (auth('member')->user()->isProfileIncomplete())
-            <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300">
-                <div class="flex items-center gap-2">
-                    <span class="font-bold">⚠️ Profil Belum Lengkap:</span>
-                    <span>Anda harus melengkapi data diri terlebih dahulu sebelum dapat mengakses buku digital dan layanan perpustakaan lainnya.</span>
+            <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200">
+                <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <span class="font-bold">Profil belum lengkap:</span>
+                    <span>Lengkapi data diri terlebih dahulu sebelum mengakses buku digital dan layanan lain.</span>
                 </div>
             </div>
         @endif
@@ -36,33 +36,14 @@
 
             <div class="sm:col-span-2">
                 <label class="label">Alamat Email (Akun Google)</label>
-                <input class="input bg-slate-100 text-slate-500 cursor-not-allowed dark:bg-slate-900/50 dark:text-slate-400" type="email" name="email" value="{{ $member->email }}" readonly>
-                <p class="mt-1.5 text-xs text-slate-400">Email di atas ditautkan secara aman dengan Google Sign-In dan tidak dapat diubah.</p>
+                <input class="input cursor-not-allowed bg-slate-100 text-slate-500 dark:bg-slate-950/60 dark:text-slate-400" type="email" name="email" value="{{ $member->email }}" readonly>
+                <p class="mt-1.5 text-xs text-slate-400">Email di atas ditautkan dengan Google Sign-In dan tidak dapat diubah.</p>
             </div>
 
-            <div>
-                <label class="label">Nama Depan (First Name)</label>
-                <input class="input" name="first_name" value="{{ old('first_name', $member->first_name) }}" required>
-                <x-field-error name="first_name" />
-            </div>
-
-            <div>
-                <label class="label">Nama Belakang (Last Name)</label>
-                <input class="input" name="last_name" value="{{ old('last_name', $member->last_name) }}" required>
-                <x-field-error name="last_name" />
-            </div>
-
-            <div>
-                <label class="label">Nama Pengguna (Username)</label>
-                <input class="input" name="username" value="{{ old('username', $member->username) }}" required autocomplete="username">
-                <x-field-error name="username" />
-            </div>
-
-            <div>
-                <label class="label">Nomor Telepon (Phone)</label>
-                <input class="input" name="phone" value="{{ old('phone', $member->phone) }}" placeholder="Contoh: 08123456789" required>
-                <x-field-error name="phone" />
-            </div>
+            <div><label class="label">Nama Depan (First Name)</label><input class="input" name="first_name" value="{{ old('first_name', $member->first_name) }}" required><x-field-error name="first_name" /></div>
+            <div><label class="label">Nama Belakang (Last Name)</label><input class="input" name="last_name" value="{{ old('last_name', $member->last_name) }}" required><x-field-error name="last_name" /></div>
+            <div><label class="label">Nama Pengguna (Username)</label><input class="input" name="username" value="{{ old('username', $member->username) }}" required autocomplete="username"><x-field-error name="username" /></div>
+            <div><label class="label">Nomor Telepon (Phone)</label><input class="input" name="phone" value="{{ old('phone', $member->phone) }}" placeholder="Contoh: 08123456789" required><x-field-error name="phone" /></div>
 
             <div>
                 <label class="label">Nomor Induk Mahasiswa (NIM / Roll Number)</label>
@@ -104,9 +85,9 @@
                 <x-field-error name="member_category_id" />
             </div>
 
-            <div class="sm:col-span-2 mt-4">
+            <div class="mt-4 sm:col-span-2">
                 <button class="btn-primary w-full" :disabled="submitting">
-                    <span x-text="submitting ? 'Menyimpan...' : 'Simpan Perubahan & Selesaikan Profil'"></span>
+                    <span x-text="submitting ? 'Menyimpan...' : 'Simpan perubahan dan selesaikan profil'"></span>
                 </button>
             </div>
         </form>

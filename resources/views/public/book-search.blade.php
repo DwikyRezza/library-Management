@@ -4,7 +4,12 @@
 
 @section('content')
 <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-    <div class="max-w-2xl"><p class="font-bold text-indigo-600 dark:text-indigo-400">Public catalog</p><h1 class="mt-2 text-4xl font-black">Search books and availability</h1><p class="mt-3 text-slate-500 dark:text-slate-400">Explore by title, author, ISBN, or category.</p></div>
+    <div class="max-w-2xl">
+        <p class="section-kicker">Public catalog</p>
+        <h1 class="mt-2 text-4xl font-black text-slate-950 dark:text-white">Search books and availability</h1>
+        <p class="mt-3 text-slate-500 dark:text-slate-400">Explore by title, author, ISBN, or category.</p>
+    </div>
+
     <form method="GET" class="panel mt-8 grid gap-3 p-4 md:grid-cols-[1fr_240px_auto]">
         <input name="q" value="{{ request('q') }}" class="input" placeholder="What are you looking for?">
         <select name="category" class="input">
@@ -21,22 +26,35 @@
     @else
         <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($books as $book)
-                <article class="panel p-5">
-                    <div class="flex items-start justify-between gap-4">
-                        <x-badge :status="$book->available_copies > 0 ? 'available' : 'unavailable'" />
-                        <span class="text-xs font-semibold text-slate-400">{{ $book->available_copies }}/{{ $book->total_copies }} copies</span>
-                    </div>
-                    <h2 class="mt-4 text-lg font-bold">{{ $book->title }}</h2>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ $book->author }}</p>
-                    <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">{{ $book->category->name }}</span>
-                        <span class="text-xs text-slate-400">{{ $book->publication_year ?: 'Year n/a' }}</span>
-                    </div>
-                    @auth('member')
-                        @if ($book->digitalAsset?->isReady())
-                            <a href="{{ route('member.reader.open', $book) }}" class="btn-primary mt-4 w-full">Read</a>
+                <article class="panel p-5 transition hover:border-blue-200 hover:bg-white dark:hover:border-blue-400/20 dark:hover:bg-slate-900/90">
+                    <div class="flex items-start gap-4">
+                        @if($book->cover_image)
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($book->cover_image) }}" class="h-28 w-20 shrink-0 rounded-lg object-cover shadow-sm" alt="{{ $book->title }}">
+                        @else
+                            <div class="book-cover">
+                                <span class="text-[9px] font-black uppercase text-blue-500 dark:text-blue-200">Book</span>
+                                <span class="line-clamp-4 text-xs font-black leading-tight">{{ $book->title }}</span>
+                                <span class="truncate text-[10px] text-blue-700/70 dark:text-blue-100/70">{{ $book->author }}</span>
+                            </div>
                         @endif
-                    @endauth
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-3">
+                                <x-badge :status="$book->available_copies > 0 ? 'available' : 'unavailable'" />
+                                <span class="shrink-0 text-xs font-semibold text-slate-400">{{ $book->available_copies }}/{{ $book->total_copies }} copies</span>
+                            </div>
+                            <h2 class="mt-4 line-clamp-2 text-lg font-bold text-slate-950 dark:text-white">{{ $book->title }}</h2>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ $book->author }}</p>
+                            <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-white/10">
+                                <span class="text-xs font-bold text-blue-700 dark:text-blue-300">{{ $book->category->name }}</span>
+                                <span class="text-xs text-slate-400">{{ $book->publication_year ?: 'Year n/a' }}</span>
+                            </div>
+                            @auth('member')
+                                @if ($book->digitalAsset?->isReady())
+                                    <a href="{{ route('member.reader.open', $book) }}" class="btn-primary mt-4 w-full">Read</a>
+                                @endif
+                            @endauth
+                        </div>
+                    </div>
                 </article>
             @endforeach
         </div>

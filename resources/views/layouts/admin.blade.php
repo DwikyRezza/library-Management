@@ -14,22 +14,22 @@
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        /* Guaranteed dark mode overrides — bypasses Tailwind utility layer cascade issues */
-        html.dark body            { background-color: #051424; color: #d4e4fa; }
-        html.dark .admin-sidebar  { background-color: #0d1c2d; border-color: rgba(69,71,76,0.15); }
-        html.dark .admin-header   { background-color: rgba(18,33,49,0.92); border-color: rgba(69,71,76,0.15); }
-        html.dark .admin-header * { border-color: rgba(69,71,76,0.3); }
+        html.dark .admin-sidebar { background-color: rgba(15, 23, 36, 0.96); border-color: rgba(255,255,255,0.10); }
+        html.dark .admin-header { background-color: rgba(16, 25, 39, 0.88); border-color: rgba(255,255,255,0.10); }
     </style>
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900 dark:bg-[#051424] dark:text-[#d4e4fa]" x-data="appShell">
+<body class="min-h-screen text-slate-900 dark:text-slate-100" x-data="appShell">
     <div x-cloak x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 z-40 bg-slate-950/60 lg:hidden"></div>
 
-    <aside class="admin-sidebar fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-slate-800 bg-slate-950 text-slate-100 transition-transform duration-200 lg:translate-x-0"
+    <aside class="admin-sidebar fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-slate-200/80 bg-white/90 text-slate-800 shadow-xl shadow-slate-200/40 backdrop-blur transition-transform duration-200 dark:text-slate-100 dark:shadow-none lg:translate-x-0"
            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
-        <div class="flex h-20 items-center justify-between border-b border-slate-800 px-6">
+        <div class="flex h-20 items-center justify-between border-b border-slate-200/80 px-6 dark:border-white/10">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-                <span class="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 font-black text-white">L</span>
-                <span><strong class="block text-lg">LibraFlow</strong><small class="text-slate-400">Staff workspace</small></span>
+                <span class="grid size-10 place-items-center rounded-lg bg-blue-600 font-black text-white shadow-sm">L</span>
+                <span>
+                    <strong class="block text-lg">LibraFlow</strong>
+                    <small class="text-slate-500 dark:text-slate-400">Staff workspace</small>
+                </span>
             </a>
             <button @click="sidebarOpen = false" class="text-2xl lg:hidden" aria-label="Close navigation">&times;</button>
         </div>
@@ -59,33 +59,33 @@
                         && ! ($routeName === 'admin.members.index' && request()->routeIs('admin.members.pending'));
                 @endphp
                 <a href="{{ route($routeName) }}"
-                   class="flex items-center justify-between rounded-xl px-4 py-3 transition {{ $isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center justify-between rounded-lg px-4 py-3 transition {{ $isActive ? 'bg-blue-600 text-white shadow-sm shadow-blue-900/10' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white' }}">
                     <span class="font-semibold">{{ $label }}</span>
                     <span class="text-xs opacity-60">{{ $hint }}</span>
                 </a>
             @endforeach
         </nav>
-        <div class="border-t border-slate-800 p-4">
-            <a href="{{ route('home') }}" class="block rounded-xl px-4 py-3 text-sm font-semibold text-slate-400 hover:bg-slate-800 hover:text-white">View public catalog</a>
+        <div class="border-t border-slate-200/80 p-4 dark:border-white/10">
+            <a href="{{ route('home') }}" class="block rounded-lg px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white">View public catalog</a>
         </div>
     </aside>
 
     <div class="min-h-screen lg:pl-72">
-        <header class="admin-header sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6">
+        <header class="admin-header sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 backdrop-blur sm:px-6">
             <div class="flex items-center gap-3">
-                <button @click="sidebarOpen = true" class="grid size-10 place-items-center rounded-xl border border-slate-200 dark:border-white/10 lg:hidden" aria-label="Open navigation">Menu</button>
+                <button @click="sidebarOpen = true" class="grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-xs font-bold dark:border-white/10 dark:bg-slate-900 lg:hidden" aria-label="Open navigation">Menu</button>
                 <div>
-                    <h1 class="font-bold text-slate-900 dark:text-[#d4e4fa]">@yield('page-title', 'Dashboard')</h1>
-                    <p class="hidden text-xs text-slate-500 sm:block dark:text-[#c6c6cc]">@yield('page-description', 'Library operations at a glance')</p>
+                    <h1 class="font-bold text-slate-950 dark:text-slate-100">@yield('page-title', 'Dashboard')</h1>
+                    <p class="hidden text-xs text-slate-500 sm:block dark:text-slate-400">@yield('page-description', 'Library operations at a glance')</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 sm:gap-3">
-                <button type="button" @click="toggleTheme()" class="grid size-10 place-items-center rounded-xl border border-slate-200 dark:border-white/10 dark:text-[#d4e4fa]" aria-label="Toggle color theme">
+                <button type="button" @click="toggleTheme()" class="grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200" aria-label="Toggle color theme">
                     <span x-text="dark ? 'Light' : 'Dark'" class="text-[10px] font-bold"></span>
                 </button>
                 <div class="hidden text-right sm:block">
-                    <p class="text-sm font-semibold text-slate-900 dark:text-[#d4e4fa]">{{ auth()->user()->name }}</p>
-                    <p class="text-xs capitalize text-slate-500 dark:text-[#c6c6cc]">{{ auth()->user()->role }}</p>
+                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ auth()->user()->name }}</p>
+                    <p class="text-xs capitalize text-slate-500 dark:text-slate-400">{{ auth()->user()->role }}</p>
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
