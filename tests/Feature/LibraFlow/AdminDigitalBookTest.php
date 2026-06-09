@@ -41,6 +41,61 @@ class AdminDigitalBookTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_upload_records_the_storage_disk_used_for_the_pdf(): void
+    {
+        config(['services.digital_reader.storage_disk' => 's3']);
+        Storage::fake('s3');
+
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $book = Book::factory()->create();
+
+        $this->actingAs($admin)
+            ->post(route('admin.books.digital.store', $book), [
+                'pdf' => UploadedFile::fake()->createWithContent('book.pdf', $this->minimalPdf()),
+            ])
+            ->assertRedirect(route('admin.books.show', $book));
+
+        $asset = DigitalBookAsset::query()->whereBelongsTo($book)->firstOrFail();
+
+        $this->assertSame('s3', $asset->storage_disk);
+        Storage::disk('s3')->assertExists($asset->original_path);
+    }
+
+    public function test_replacing_a_legacy_local_pdf_deletes_it_from_its_original_disk(): void
+    {
+        config(['services.digital_reader.storage_disk' => 's3']);
+        Storage::fake('s3');
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $book = Book::factory()->create();
+        $oldAsset = DigitalBookAsset::query()->create([
+            'uuid' => fake()->uuid(),
+            'book_id' => $book->id,
+            'original_path' => 'digital-books/legacy-local/original.pdf',
+            'original_name' => 'old.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 100,
+            'sha256' => str_repeat('a', 64),
+            'page_count' => 2,
+            'status' => DigitalBookAsset::STATUS_READY,
+            'uploaded_by' => $admin->id,
+            'rendered_at' => now(),
+        ]);
+        Storage::disk('local')->put($oldAsset->original_path, $this->minimalPdf());
+
+        $this->actingAs($admin)
+            ->post(route('admin.books.digital.store', $book), [
+                'pdf' => UploadedFile::fake()->createWithContent('replacement.pdf', $this->minimalPdf()),
+            ])
+            ->assertRedirect(route('admin.books.show', $book));
+
+        Storage::disk('local')->assertMissing($oldAsset->original_path);
+        Storage::disk('s3')->assertExists(
+            DigitalBookAsset::query()->whereBelongsTo($book)->firstOrFail()->original_path
+        );
+    }
+
     public function test_librarian_cannot_upload_a_digital_book(): void
     {
         config(['services.digital_reader.storage_disk' => 'local']);

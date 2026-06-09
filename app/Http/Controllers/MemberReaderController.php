@@ -5,13 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ReadingHeartbeatRequest;
 use App\Models\Book;
 use App\Models\ReadingSession;
+use App\Services\DigitalBookService;
 use App\Services\DigitalLoanService;
 use App\Services\ReadingSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -43,16 +43,17 @@ class MemberReaderController extends Controller
         ]);
     }
 
-    public function document(ReadingSession $readingSession): StreamedResponse
-    {
+    public function document(
+        ReadingSession $readingSession,
+        DigitalBookService $digitalBookService
+    ): StreamedResponse {
         $this->ensureActiveLoan($readingSession);
         $readingSession->loadMissing('digitalBookAsset');
         $asset = $readingSession->digitalBookAsset;
 
         abort_unless($asset?->isReady(), 404);
 
-        $disk = Storage::disk($this->digitalBookDiskName());
-        $stream = $disk->readStream($asset->original_path);
+        $stream = $digitalBookService->readStream($asset);
 
         abort_unless(is_resource($stream), 404);
 
@@ -61,6 +62,7 @@ class MemberReaderController extends Controller
             fclose($stream);
         }, 200, [
             'Content-Type' => 'application/pdf',
+            'Content-Length' => (string) $asset->file_size,
             'Content-Disposition' => 'inline; filename="book.pdf"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
@@ -132,10 +134,5 @@ class MemberReaderController extends Controller
                 ->exists(),
             404,
         );
-    }
-
-    private function digitalBookDiskName(): string
-    {
-        return (string) config('services.digital_reader.storage_disk', config('filesystems.default', 'local'));
     }
 }

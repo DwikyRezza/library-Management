@@ -18,6 +18,7 @@ class DigitalBookAsset extends Model
         'uuid',
         'book_id',
         'original_path',
+        'storage_disk',
         'pages_path',
         'original_name',
         'mime_type',

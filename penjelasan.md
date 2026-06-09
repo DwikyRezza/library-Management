@@ -576,6 +576,32 @@ Kemungkinan:
 - PDF rusak atau terenkripsi password;
 - cache Laravel masih memakai route lama.
 
+Jika reader menampilkan **"Dokumen gagal dimuat"** setelah storage diubah dari
+`local` ke `s3`, deploy migration terbaru terlebih dahulu:
+
+```bash
+cd /var/www/html
+git pull
+composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+php8.4 artisan migrate --force
+php8.4 artisan optimize:clear
+php8.4 artisan optimize
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo systemctl reload php8.4-fpm
+```
+
+Versi terbaru menyimpan nama disk pada setiap PDF. Aset lama yang belum memiliki
+informasi disk akan mencoba S3 terlebih dahulu lalu otomatis fallback ke
+`storage/app/private` pada EC2. Jika file lama juga sudah tidak ada di folder
+tersebut, unggah ulang PDF melalui halaman admin.
+
+Untuk melihat penyebab storage yang sebenarnya:
+
+```bash
+cd /var/www/html
+tail -n 150 storage/logs/laravel-*.log | grep -E "Digital book|UnableToReadFile|S3|AccessDenied|NoSuchKey"
+```
+
 #### Web 500 setelah deploy
 
 Jalankan:

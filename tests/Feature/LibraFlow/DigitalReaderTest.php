@@ -113,6 +113,7 @@ class DigitalReaderTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
+        $response->assertHeader('content-length', (string) $asset->file_size);
         $cacheControl = $response->headers->get('cache-control', '');
         $this->assertStringContainsString('private', $cacheControl);
         $this->assertStringContainsString('no-store', $cacheControl);
@@ -155,6 +156,28 @@ class DigitalReaderTest extends TestCase
         $response->assertOk();
         $response->assertHeader('content-type', 'application/pdf');
         $this->assertSame($this->minimalPdf(), $response->streamedContent());
+        $this->assertSame('s3', $asset->fresh()->storage_disk);
+    }
+
+    public function test_legacy_asset_falls_back_to_local_storage_after_default_disk_changes_to_s3(): void
+    {
+        config(['services.digital_reader.storage_disk' => 's3']);
+        Storage::fake('s3');
+        Storage::fake('local');
+
+        $member = Member::factory()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
+        $session = $this->createReadingSession($member, $book, $asset);
+        Storage::disk('local')->put($asset->original_path, $this->minimalPdf());
+
+        $response = $this->actingAs($member, 'member')
+            ->get(route('member.reader.document', $session));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertSame($this->minimalPdf(), $response->streamedContent());
+        $this->assertSame('local', $asset->fresh()->storage_disk);
     }
 
     public function test_heartbeat_updates_last_page_and_caps_recorded_duration(): void
@@ -243,7 +266,7 @@ class DigitalReaderTest extends TestCase
             'original_path' => 'digital-books/processing/original.pdf',
             'original_name' => 'processing.pdf',
             'mime_type' => 'application/pdf',
-            'file_size' => 100,
+            'file_size' => strlen($this->minimalPdf()),
             'sha256' => str_repeat('b', 64),
             'page_count' => 0,
             'status' => DigitalBookAsset::STATUS_PROCESSING,
