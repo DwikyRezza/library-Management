@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DigitalLoan extends Model
 {
@@ -23,6 +24,7 @@ class DigitalLoan extends Model
         'book_copy_id',
         'borrowed_at',
         'due_at',
+        'last_read_page',
         'extended_at',
         'returned_at',
         'return_reason',
@@ -31,6 +33,7 @@ class DigitalLoan extends Model
     protected $casts = [
         'borrowed_at' => 'datetime',
         'due_at' => 'datetime',
+        'last_read_page' => 'integer',
         'extended_at' => 'datetime',
         'returned_at' => 'datetime',
     ];
@@ -48,6 +51,11 @@ class DigitalLoan extends Model
     public function bookCopy(): BelongsTo
     {
         return $this->belongsTo(BookCopy::class);
+    }
+
+    public function highlights(): HasMany
+    {
+        return $this->hasMany(BookHighlight::class);
     }
 
     public function scopeActive(Builder $query): Builder

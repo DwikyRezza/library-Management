@@ -29,6 +29,10 @@ class MemberBooklistController extends Controller
                 'booklistEntries as is_in_booklist' => fn (Builder $query): Builder => $query
                     ->where('member_id', $member->id),
             ])
+            ->withMax([
+                'activeDigitalLoans as active_loan_last_read_page' => fn (Builder $query): Builder => $query
+                    ->where('member_id', $member->id),
+            ], 'last_read_page')
             ->orderBy('title')
             ->paginate(12);
 

@@ -13,7 +13,10 @@
         data-document-url="{{ route('member.reader.document', $session) }}"
         data-heartbeat-url="{{ route('member.reader.heartbeat', $session) }}"
         data-finish-url="{{ route('member.reader.finish', $session) }}"
-        data-initial-page="{{ max(1, $session->last_page) }}"
+        data-highlight-store-url="{{ route('member.reader.highlights.store') }}"
+        data-highlight-delete-url-base="{{ url('/member/reader/highlight') }}"
+        data-digital-loan-id="{{ $loan->id }}"
+        data-initial-page="{{ $initialPage }}"
         class="flex min-h-screen flex-col"
     >
         <header class="sticky top-0 z-30 border-b border-slate-700 bg-slate-900 px-3 py-3 text-slate-100 shadow-sm">
@@ -26,6 +29,7 @@
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <span id="readerSaveStatus" class="hidden text-xs font-semibold text-slate-400 sm:inline" aria-live="polite"></span>
                     <button id="readerZoomOut" type="button" aria-label="Perkecil halaman" title="Perkecil"
                             class="grid size-10 place-items-center rounded-lg border border-slate-600 font-bold hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
                         -
@@ -43,9 +47,9 @@
             </div>
         </header>
 
-        <main class="flex-1 p-2 sm:p-4">
+        <main class="flex flex-1 p-2 sm:p-4">
             <div id="readerStage"
-                 class="relative mx-auto min-h-[70vh] max-w-screen-2xl overflow-auto rounded-lg border border-slate-300 bg-slate-800 p-4 shadow-lg">
+                 class="relative mx-auto flex min-h-[70vh] w-full max-w-screen-2xl items-start overflow-auto rounded-lg border border-slate-300 bg-slate-800 p-3 shadow-lg sm:p-5">
                 <div id="readerLoading"
                      class="absolute inset-0 z-10 grid min-h-96 place-items-center bg-slate-800 text-sm font-semibold text-slate-100">
                     Memuat dokumen...
@@ -65,11 +69,29 @@
                     </div>
                 </div>
 
-                <canvas id="readerCanvas"
-                        class="invisible mx-auto block max-w-none bg-white shadow-xl"
-                        aria-label="Halaman buku"></canvas>
+                <div id="readerPageSurface" class="reader-page-surface invisible">
+                    <canvas id="readerCanvas"
+                            class="block max-w-none bg-white"
+                            aria-label="Halaman buku"></canvas>
+                    <div id="readerHighlightLayer" class="reader-highlight-layer" aria-hidden="true"></div>
+                    <div id="readerTextLayer" class="reader-text-layer textLayer" aria-label="Teks halaman buku"></div>
+                </div>
             </div>
         </main>
+
+        <div id="readerHighlightPopover"
+             class="reader-highlight-popover hidden"
+             role="toolbar"
+             aria-label="Pilih warna stabilo">
+            <button type="button" class="reader-color-swatch bg-[#fef08a]" data-highlight-color="#fef08a"
+                    aria-label="Stabilo kuning" title="Kuning"></button>
+            <button type="button" class="reader-color-swatch bg-[#bbf7d0]" data-highlight-color="#bbf7d0"
+                    aria-label="Stabilo hijau" title="Hijau"></button>
+            <button type="button" class="reader-color-swatch bg-[#bfdbfe]" data-highlight-color="#bfdbfe"
+                    aria-label="Stabilo biru" title="Biru"></button>
+        </div>
+
+        <script id="readerHighlightsData" type="application/json">{!! \Illuminate\Support\Js::encode($highlights) !!}</script>
 
         <footer class="sticky bottom-0 z-30 border-t border-slate-700 bg-slate-900 px-3 py-3 text-slate-100 shadow-sm">
             <div class="mx-auto flex max-w-xl items-center justify-between gap-3">

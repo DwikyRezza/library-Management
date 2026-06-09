@@ -82,12 +82,17 @@ class PublicBookController extends Controller
             return $query;
         }
 
-        return $query->withExists([
-            'activeDigitalLoans as has_active_digital_loan' => fn (Builder $loanQuery): Builder => $loanQuery
-                ->where('member_id', $member->id),
-            'booklistEntries as is_in_booklist' => fn (Builder $booklistQuery): Builder => $booklistQuery
-                ->where('member_id', $member->id),
-        ]);
+        return $query
+            ->withExists([
+                'activeDigitalLoans as has_active_digital_loan' => fn (Builder $loanQuery): Builder => $loanQuery
+                    ->where('member_id', $member->id),
+                'booklistEntries as is_in_booklist' => fn (Builder $booklistQuery): Builder => $booklistQuery
+                    ->where('member_id', $member->id),
+            ])
+            ->withMax([
+                'activeDigitalLoans as active_loan_last_read_page' => fn (Builder $loanQuery): Builder => $loanQuery
+                    ->where('member_id', $member->id),
+            ], 'last_read_page');
     }
 
     private function syncExpiredLoans(?Member $member, DigitalLoanService $digitalLoanService): void

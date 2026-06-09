@@ -4,6 +4,7 @@ namespace Tests\Feature\LibraFlow;
 
 use App\Models\Book;
 use App\Models\BookCopy;
+use App\Models\BookHighlight;
 use App\Models\DigitalBookAsset;
 use App\Models\DigitalLoan;
 use App\Models\Member;
@@ -54,6 +55,24 @@ class DigitalReaderTest extends TestCase
         $this->assertSame(1, $session->last_page);
     }
 
+    public function test_reader_session_resumes_from_the_digital_loans_last_read_page(): void
+    {
+        $member = Member::factory()->create();
+        [$book] = $this->createReadyBook();
+        $loan = $this->createActiveLoan($member, $book);
+        $loan->forceFill(['last_read_page' => 3])->save();
+
+        $response = $this->actingAs($member, 'member')->get(route('member.reader.open', $book));
+        $session = ReadingSession::query()->whereBelongsTo($member)->firstOrFail();
+
+        $response->assertRedirect(route('member.reader.show', $session));
+        $this->assertSame(3, $session->last_page);
+        $this->actingAs($member, 'member')
+            ->get(route('member.reader.show', $session))
+            ->assertOk()
+            ->assertSee('data-initial-page="3"', false);
+    }
+
     public function test_rejected_member_is_logged_out_before_reading(): void
     {
         $member = Member::factory()->rejected()->create();
@@ -92,9 +111,36 @@ class DigitalReaderTest extends TestCase
             ->assertOk()
             ->assertSee($book->title)
             ->assertSee('readerCanvas')
+            ->assertSee('readerTextLayer')
+            ->assertSee('readerHighlightLayer')
+            ->assertSee('readerHighlightPopover')
+            ->assertSee(route('member.reader.highlights.store'), false)
             ->assertSee('/document', false)
             ->assertSee('Dokumen gagal dimuat')
             ->assertDontSee('watermark');
+    }
+
+    public function test_digital_loan_stores_highlights_with_serialized_ranges(): void
+    {
+        $member = Member::factory()->create();
+        [$book] = $this->createReadyBook();
+        $loan = $this->createActiveLoan($member, $book);
+
+        $highlight = $loan->highlights()->create([
+            'page_number' => 2,
+            'highlighted_text' => 'Ancient persuasion',
+            'color' => '#fef08a',
+            'serialized_range' => $this->serializedRange(),
+        ]);
+
+        $this->assertInstanceOf(BookHighlight::class, $highlight);
+        $this->assertSame($loan->id, $highlight->digital_loan_id);
+        $this->assertSame(2, $highlight->page_number);
+        $this->assertSame($this->serializedRange(), $highlight->serialized_range);
+
+        $loan->delete();
+
+        $this->assertDatabaseMissing('book_highlights', ['id' => $highlight->id]);
     }
 
     public function test_document_response_is_a_private_pdf_for_the_session_owner(): void
@@ -186,7 +232,7 @@ class DigitalReaderTest extends TestCase
 
         $member = Member::factory()->create();
         [$book, $asset] = $this->createReadyBook();
-        $this->createActiveLoan($member, $book);
+        $loan = $this->createActiveLoan($member, $book);
         $session = $this->createReadingSession($member, $book, $asset);
 
         Carbon::setTestNow('2026-06-06 10:02:00');
@@ -202,8 +248,69 @@ class DigitalReaderTest extends TestCase
         $this->assertSame(2, $session->last_page);
         $this->assertSame(2, $session->max_page);
         $this->assertSame(60, $session->duration_seconds);
+        $this->assertSame(2, $loan->fresh()->last_read_page);
 
         Carbon::setTestNow();
+    }
+
+    public function test_member_can_create_and_delete_a_highlight_for_an_active_digital_loan(): void
+    {
+        $member = Member::factory()->create();
+        [$book] = $this->createReadyBook();
+        $loan = $this->createActiveLoan($member, $book);
+
+        $response = $this->actingAs($member, 'member')
+            ->postJson(route('member.reader.highlights.store'), [
+                'digital_loan_id' => $loan->id,
+                'page_number' => 2,
+                'highlighted_text' => 'Art of persuasion',
+                'color' => '#bbf7d0',
+                'serialized_range' => $this->serializedRange(),
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.page_number', 2)
+            ->assertJsonPath('data.highlighted_text', 'Art of persuasion')
+            ->assertJsonPath('data.color', '#bbf7d0');
+
+        $highlight = BookHighlight::query()->firstOrFail();
+
+        $this->actingAs($member, 'member')
+            ->deleteJson(route('member.reader.highlights.destroy', $highlight))
+            ->assertNoContent();
+
+        $this->assertDatabaseCount('book_highlights', 0);
+    }
+
+    public function test_member_cannot_create_or_delete_highlights_for_another_members_loan(): void
+    {
+        $owner = Member::factory()->create();
+        $otherMember = Member::factory()->create();
+        [$book] = $this->createReadyBook();
+        $loan = $this->createActiveLoan($owner, $book);
+        $highlight = BookHighlight::query()->create([
+            'digital_loan_id' => $loan->id,
+            'page_number' => 1,
+            'highlighted_text' => 'Private note',
+            'color' => '#bfdbfe',
+            'serialized_range' => $this->serializedRange(),
+        ]);
+
+        $this->actingAs($otherMember, 'member')
+            ->postJson(route('member.reader.highlights.store'), [
+                'digital_loan_id' => $loan->id,
+                'page_number' => 1,
+                'highlighted_text' => 'Stolen note',
+                'color' => '#bfdbfe',
+                'serialized_range' => $this->serializedRange(),
+            ])
+            ->assertNotFound();
+
+        $this->actingAs($otherMember, 'member')
+            ->deleteJson(route('member.reader.highlights.destroy', $highlight))
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('book_highlights', ['id' => $highlight->id]);
     }
 
     public function test_heartbeat_records_the_page_count_reported_by_pdfjs(): void
@@ -367,5 +474,22 @@ class DigitalReaderTest extends TestCase
 trailer<</Root 1 0 R>>
 %%EOF
 PDF;
+    }
+
+    private function serializedRange(): array
+    {
+        return [
+            'version' => 1,
+            'start' => ['index' => 0, 'offset' => 0],
+            'end' => ['index' => 1, 'offset' => 8],
+            'rects' => [
+                [
+                    'x' => 0.12,
+                    'y' => 0.24,
+                    'width' => 0.32,
+                    'height' => 0.04,
+                ],
+            ],
+        ];
     }
 }

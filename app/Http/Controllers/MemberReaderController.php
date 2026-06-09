@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ReadingHeartbeatRequest;
 use App\Models\Book;
+use App\Models\DigitalLoan;
 use App\Models\ReadingSession;
 use App\Services\DigitalBookService;
 use App\Services\DigitalLoanService;
@@ -31,7 +32,7 @@ class MemberReaderController extends Controller
 
     public function show(ReadingSession $readingSession): View
     {
-        $this->ensureActiveLoan($readingSession);
+        $loan = $this->ensureActiveLoan($readingSession);
         $readingSession->load(['book', 'digitalBookAsset']);
 
         abort_unless($readingSession->digitalBookAsset?->isReady(), 404);
@@ -40,6 +41,28 @@ class MemberReaderController extends Controller
             'session' => $readingSession,
             'book' => $readingSession->book,
             'asset' => $readingSession->digitalBookAsset,
+            'loan' => $loan,
+            'initialPage' => max(1, (int) $readingSession->last_page),
+            'highlights' => $loan->highlights()
+                ->select([
+                    'id',
+                    'digital_loan_id',
+                    'page_number',
+                    'highlighted_text',
+                    'color',
+                    'serialized_range',
+                ])
+                ->orderBy('page_number')
+                ->orderBy('id')
+                ->get()
+                ->map(fn ($highlight): array => $highlight->only([
+                    'id',
+                    'page_number',
+                    'highlighted_text',
+                    'color',
+                    'serialized_range',
+                ]))
+                ->values(),
         ]);
     }
 
@@ -78,10 +101,11 @@ class MemberReaderController extends Controller
         ReadingSession $readingSession,
         ReadingSessionService $readingSessionService
     ): JsonResponse {
-        $this->ensureActiveLoan($readingSession);
+        $loan = $this->ensureActiveLoan($readingSession);
 
         $session = $readingSessionService->heartbeat(
             $readingSession,
+            $loan,
             $request->integer('page'),
             false,
             $request->filled('total_pages') ? $request->integer('total_pages') : null,
@@ -99,10 +123,11 @@ class MemberReaderController extends Controller
         ReadingSession $readingSession,
         ReadingSessionService $readingSessionService
     ): JsonResponse {
-        $this->ensureActiveLoan($readingSession);
+        $loan = $this->ensureActiveLoan($readingSession);
 
         $session = $readingSessionService->heartbeat(
             $readingSession,
+            $loan,
             $request->integer('page'),
             true,
             $request->filled('total_pages') ? $request->integer('total_pages') : null,
@@ -120,19 +145,15 @@ class MemberReaderController extends Controller
         abort_unless($session->member_id === Auth::guard('member')->id(), 404);
     }
 
-    private function ensureActiveLoan(ReadingSession $session): void
+    private function ensureActiveLoan(ReadingSession $session): DigitalLoan
     {
         $this->ensureOwner($session);
 
         $member = Auth::guard('member')->user();
-        $this->digitalLoanService->syncExpiredForMember($member);
+        $loan = $this->digitalLoanService->activeLoanForSession($member, $session);
 
-        abort_unless(
-            $member->digitalLoans()
-                ->active()
-                ->where('book_id', $session->book_id)
-                ->exists(),
-            404,
-        );
+        abort_unless($loan, 404);
+
+        return $loan;
     }
 }

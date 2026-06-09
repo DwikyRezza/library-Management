@@ -38,7 +38,9 @@
                             <p class="mt-4 text-xs font-bold uppercase text-slate-400">Due date</p>
                             <p class="mt-1 text-sm font-semibold">{{ $loan->due_at->translatedFormat('d M Y, H:i') }}</p>
                             <div class="mt-4 flex flex-wrap gap-2">
-                                <a href="{{ route('member.reader.open', $loan->book) }}" class="btn-primary">Read</a>
+                                <a href="{{ route('member.reader.open', $loan->book) }}" class="btn-primary">
+                                    {{ $loan->last_read_page > 1 ? "Lanjutkan Membaca (Hal. {$loan->last_read_page})" : 'Read' }}
+                                </a>
                                 @if ($loan->can_extend)
                                     <form method="POST" action="{{ route('member.borrowed.extend', $loan) }}">
                                         @csrf

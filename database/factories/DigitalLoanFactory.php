@@ -25,6 +25,7 @@ class DigitalLoanFactory extends Factory
             ])->id,
             'borrowed_at' => $borrowedAt,
             'due_at' => $borrowedAt->copy()->addDays(10),
+            'last_read_page' => 1,
             'extended_at' => null,
             'returned_at' => null,
             'return_reason' => null,

@@ -1,0 +1,115 @@
+.reader-page-surface {
+    --scale-factor: 1;
+    --user-unit: 1;
+    --total-scale-factor: calc(var(--scale-factor) * var(--user-unit));
+    --scale-round-x: 1px;
+    --scale-round-y: 1px;
+    position: relative;
+    isolation: isolate;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 18px 45px rgb(2 6 23 / 0.35);
+}
+
+.reader-highlight-layer,
+.reader-text-layer {
+    position: absolute;
+    inset: 0;
+}
+
+.reader-highlight-layer {
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.reader-highlight-mark {
+    position: absolute;
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 1px rgb(15 23 42 / 0.04);
+    mix-blend-mode: multiply;
+    opacity: 0.72;
+}
+
+.reader-text-layer {
+    --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+    --min-font-size-inv: calc(1 / var(--min-font-size));
+    z-index: 2;
+    overflow: clip;
+    color-scheme: only light;
+    line-height: 1;
+    letter-spacing: 0;
+    word-spacing: normal;
+    text-align: initial;
+    transform-origin: 0 0;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+    forced-color-adjust: none;
+}
+
+.reader-text-layer :is(span, br) {
+    position: absolute;
+    color: transparent;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0 0;
+    user-select: text;
+}
+
+.reader-text-layer > :not(.markedContent),
+.reader-text-layer .markedContent span:not(.markedContent) {
+    z-index: 1;
+    --font-height: 0;
+    --scale-x: 1;
+    --rotate: 0deg;
+    font-size: calc(var(--text-scale-factor) * var(--font-height));
+    transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.reader-text-layer .markedContent {
+    display: contents;
+}
+
+.reader-text-layer ::selection {
+    color: transparent;
+    background: rgb(96 165 250 / 0.35);
+}
+
+.reader-highlight-popover {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid rgb(203 213 225);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.98);
+    box-shadow: 0 12px 30px rgb(15 23 42 / 0.22);
+    transform: translate(-50%, calc(-100% - 10px));
+    backdrop-filter: blur(10px);
+}
+
+.reader-highlight-popover.hidden {
+    display: none;
+}
+
+.reader-color-swatch {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgb(148 163 184);
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.reader-color-swatch:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgb(15 23 42 / 0.2);
+}
+
+@media (max-width: 640px) {
+    .reader-highlight-popover {
+        transform: translate(-50%, calc(-100% - 6px));
+    }
+}

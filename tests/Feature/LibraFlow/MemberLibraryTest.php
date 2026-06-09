@@ -111,6 +111,21 @@ class MemberLibraryTest extends TestCase
             ->assertSee(route('member.borrowed.extend', $activeLoan), false);
     }
 
+    public function test_home_catalog_and_borrowed_pages_show_the_saved_resume_page(): void
+    {
+        $member = Member::factory()->create();
+        [$book] = $this->createReadyBook(['title' => 'Resume Reader']);
+        $loan = app(DigitalLoanService::class)->borrow($member, $book);
+        $loan->forceFill(['last_read_page' => 6])->save();
+
+        foreach ([route('home'), route('books.search'), route('member.borrowed.index')] as $url) {
+            $this->actingAs($member, 'member')
+                ->get($url)
+                ->assertOk()
+                ->assertSee('Lanjutkan Membaca (Hal. 6)');
+        }
+    }
+
     public function test_member_cannot_mutate_another_members_digital_loan(): void
     {
         $owner = Member::factory()->create();

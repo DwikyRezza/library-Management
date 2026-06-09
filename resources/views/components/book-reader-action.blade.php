@@ -6,6 +6,8 @@
 @php
     $asset = $book->digitalAsset;
     $hasActiveLoan = (bool) ($book->getAttribute('has_active_digital_loan') ?? false);
+    $lastReadPage = max(1, (int) ($book->getAttribute('active_loan_last_read_page') ?? 1));
+    $readLabel = $lastReadPage > 1 ? "Lanjutkan Membaca (Hal. {$lastReadPage})" : 'Read';
     $isInBooklist = (bool) ($book->getAttribute('is_in_booklist') ?? false);
     $modalName = 'book-description-'.$book->id;
     $buttonClass = $compact ? 'btn-ghost px-2.5 py-2 text-xs' : 'btn-secondary flex-1 px-3';
@@ -40,7 +42,7 @@
                 href="{{ route('member.reader.open', $book) }}"
                 class="{{ $compact ? 'btn-primary px-3 py-2 text-xs' : 'btn-primary col-span-2 w-full' }}"
             >
-                Read
+                {{ $readLabel }}
             </a>
         @elseif ($book->available_copies > 0)
             @auth('member')

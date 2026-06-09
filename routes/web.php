@@ -13,6 +13,7 @@ use App\Http\Controllers\MemberBooklistController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberDigitalLoanController;
 use App\Http\Controllers\MemberReaderController;
+use App\Http\Controllers\MemberReaderHighlightController;
 use App\Http\Controllers\MemberRegistrationController;
 use App\Http\Controllers\PublicBookController;
 use App\Http\Controllers\ReportController;
@@ -74,6 +75,12 @@ Route::middleware('auth:member')->group(function (): void {
         Route::post('/reader/{readingSession}/finish', [MemberReaderController::class, 'finish'])
             ->middleware('throttle:30,1')
             ->name('member.reader.finish');
+        Route::post('/member/reader/highlight', [MemberReaderHighlightController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('member.reader.highlights.store');
+        Route::delete('/member/reader/highlight/{bookHighlight}', [MemberReaderHighlightController::class, 'destroy'])
+            ->middleware('throttle:60,1')
+            ->name('member.reader.highlights.destroy');
     });
 });
 

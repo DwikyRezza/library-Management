@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\Models\Book;
 use App\Models\BookCopy;
+use App\Models\BookHighlight;
 use App\Models\DigitalLoan;
 use App\Models\Member;
+use App\Models\ReadingSession;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +18,12 @@ class DigitalLoanService
     public const MAX_ACTIVE_LOANS = 3;
 
     public const LOAN_DAYS = 10;
+
+    public const HIGHLIGHT_COLORS = [
+        '#fef08a',
+        '#bbf7d0',
+        '#bfdbfe',
+    ];
 
     public function borrow(Member $member, Book $book): DigitalLoan
     {
@@ -73,6 +82,7 @@ class DigitalLoanService
                     'book_copy_id' => $copy->id,
                     'borrowed_at' => $borrowedAt,
                     'due_at' => $borrowedAt->copy()->addDays(self::LOAN_DAYS),
+                    'last_read_page' => 1,
                 ]);
 
                 $copyUpdated = BookCopy::query()
@@ -212,6 +222,87 @@ class DigitalLoanService
         }
 
         return $loanIds->count();
+    }
+
+    public function activeLoanForBook(Member $member, Book $book): ?DigitalLoan
+    {
+        $this->syncExpiredForMember($member);
+
+        return $member->digitalLoans()
+            ->active()
+            ->where('book_id', $book->id)
+            ->first();
+    }
+
+    public function activeLoanForSession(Member $member, ReadingSession $session): ?DigitalLoan
+    {
+        $this->syncExpiredForMember($member);
+
+        return $member->digitalLoans()
+            ->active()
+            ->where('book_id', $session->book_id)
+            ->first();
+    }
+
+    public function recordLastReadPage(DigitalLoan $loan, int $page): DigitalLoan
+    {
+        $activeLoan = DigitalLoan::query()
+            ->active()
+            ->whereKey($loan->id)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $activeLoan) {
+            throw (new ModelNotFoundException)->setModel(DigitalLoan::class, [$loan->id]);
+        }
+
+        $activeLoan->forceFill(['last_read_page' => $page])->save();
+
+        return $activeLoan->refresh();
+    }
+
+    public function createHighlight(Member $member, array $data): BookHighlight
+    {
+        $loan = $this->ownedActiveLoan($member, (int) $data['digital_loan_id']);
+        $pageCount = (int) $loan->book()->with('digitalAsset')->firstOrFail()->digitalAsset?->page_count;
+
+        if ($pageCount > 0 && (int) $data['page_number'] > $pageCount) {
+            throw ValidationException::withMessages([
+                'page_number' => 'Nomor halaman stabilo tidak valid.',
+            ]);
+        }
+
+        return $loan->highlights()->create([
+            'page_number' => $data['page_number'],
+            'highlighted_text' => $data['highlighted_text'],
+            'color' => $data['color'],
+            'serialized_range' => $data['serialized_range'],
+        ]);
+    }
+
+    public function deleteHighlight(Member $member, BookHighlight $highlight): void
+    {
+        $this->syncExpiredForMember($member);
+
+        $ownedHighlight = BookHighlight::query()
+            ->whereKey($highlight->id)
+            ->whereHas('digitalLoan', function ($query) use ($member): void {
+                $query->where('member_id', $member->id)->active();
+            })
+            ->firstOrFail();
+
+        $ownedHighlight->delete();
+    }
+
+    private function ownedActiveLoan(Member $member, int $loanId): DigitalLoan
+    {
+        $this->syncExpiredForMember($member);
+
+        return $member->digitalLoans()
+            ->with(['book.digitalAsset'])
+            ->active()
+            ->whereKey($loanId)
+            ->firstOrFail();
     }
 
     private function validateBorrower(Member $member): void

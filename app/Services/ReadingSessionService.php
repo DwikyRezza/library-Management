@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Book;
+use App\Models\DigitalLoan;
 use App\Models\Member;
 use App\Models\ReadingSession;
 use Illuminate\Http\Request;
@@ -18,9 +19,9 @@ class ReadingSessionService
 
     public function start(Member $member, Book $book, Request $request): ReadingSession
     {
-        $this->digitalLoanService->syncExpiredForMember($member);
+        $loan = $this->digitalLoanService->activeLoanForBook($member, $book);
 
-        if (! $member->digitalLoans()->active()->where('book_id', $book->id)->exists()) {
+        if (! $loan) {
             throw ValidationException::withMessages([
                 'book' => 'Pinjam buku digital ini terlebih dahulu sebelum mulai membaca.',
             ]);
@@ -34,6 +35,12 @@ class ReadingSessionService
             ]);
         }
 
+        $initialPage = max(1, (int) $loan->last_read_page);
+
+        if ($asset->page_count > 0) {
+            $initialPage = min($initialPage, $asset->page_count);
+        }
+
         return ReadingSession::query()->create([
             'uuid' => (string) Str::uuid(),
             'member_id' => $member->id,
@@ -41,8 +48,8 @@ class ReadingSessionService
             'digital_book_asset_id' => $asset->id,
             'started_at' => now(),
             'last_active_at' => now(),
-            'last_page' => 1,
-            'max_page' => 1,
+            'last_page' => $initialPage,
+            'max_page' => $initialPage,
             'duration_seconds' => 0,
             'ip_address' => $request->ip(),
             'user_agent' => Str::limit((string) $request->userAgent(), 1000, ''),
@@ -51,11 +58,12 @@ class ReadingSessionService
 
     public function heartbeat(
         ReadingSession $session,
+        DigitalLoan $loan,
         int $page,
         bool $finish = false,
         ?int $totalPages = null
     ): ReadingSession {
-        return DB::transaction(function () use ($session, $page, $finish, $totalPages): ReadingSession {
+        return DB::transaction(function () use ($session, $loan, $page, $finish, $totalPages): ReadingSession {
             $session = ReadingSession::query()
                 ->with('digitalBookAsset')
                 ->whereKey($session->id)
@@ -91,6 +99,8 @@ class ReadingSessionService
                 'last_active_at' => $now,
                 'ended_at' => $finish ? $now : $session->ended_at,
             ])->save();
+
+            $this->digitalLoanService->recordLastReadPage($loan, $page);
 
             return $session->refresh();
         });
