@@ -1,7 +1,16 @@
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+// 
 
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+
+// PERBAIKAN: Gunakan konstruktor objek Worker bawaan browser
+// yang didukung penuh oleh Vite untuk lingkungan produksi (ES Module).
+if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerSrc) {
+    const PdfWorker = new Worker(
+        new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url),
+        { type: 'module' }
+    );
+    GlobalWorkerOptions.workerPort = PdfWorker;
+}
 
 const reader = document.querySelector('[data-pdf-reader]');
 
