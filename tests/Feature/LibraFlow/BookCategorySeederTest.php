@@ -21,7 +21,7 @@ class BookCategorySeederTest extends TestCase
         $this->seed(BookCategorySeeder::class);
         $this->seed(BookCategorySeeder::class);
 
-        $this->assertSame(16, BookCategory::query()->count());
+        $this->assertSame(17, BookCategory::query()->count());
         $this->assertDatabaseHas('book_categories', [
             'name' => 'Technology',
             'slug' => 'technology',
@@ -33,6 +33,10 @@ class BookCategorySeederTest extends TestCase
         $this->assertDatabaseHas('book_categories', [
             'name' => 'Medicine',
             'slug' => 'medicine',
+        ]);
+        $this->assertDatabaseHas('book_categories', [
+            'name' => 'Self Development',
+            'slug' => 'self-development',
         ]);
         $this->assertDatabaseHas('book_categories', [
             'name' => 'Kategori Kampus',

@@ -98,6 +98,12 @@ class BookCategorySeeder extends Seeder
             'color' => 'amber',
             'description' => 'Visual arts, design, music, theater, and cultural expression.',
         ],
+        [
+            'name' => 'Self Development',
+            'slug' => 'self-development',
+            'color' => 'blue',
+            'description' => 'Personal growth, productivity, habits, communication, and motivation.',
+        ],
     ];
 
     /**
