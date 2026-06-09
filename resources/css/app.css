@@ -83,6 +83,7 @@
 
     html {
         background: #f6f4ef;
+        scroll-behavior: smooth;
     }
 
     html.dark {
@@ -107,6 +108,17 @@
     textarea {
         @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950;
     }
+
+    button,
+    a,
+    [role='button'] {
+        transition:
+            color 180ms ease,
+            background-color 180ms ease,
+            border-color 180ms ease,
+            box-shadow 180ms ease,
+            transform 180ms ease;
+    }
 }
 
 @layer components {
@@ -123,19 +135,19 @@
     }
 
     .btn-primary {
-        @apply inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-900/10 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-500 dark:hover:bg-blue-400 dark:hover:text-slate-950;
+        @apply inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-900/10 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-500 dark:hover:bg-blue-400 dark:hover:text-slate-950;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center rounded-md border border-slate-300/80 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm shadow-slate-200/40 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-200 dark:shadow-none dark:hover:bg-slate-800;
+        @apply inline-flex items-center justify-center rounded-md border border-slate-300/80 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm shadow-slate-200/40 transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-200 dark:shadow-none dark:hover:bg-slate-800;
     }
 
     .btn-danger {
-        @apply inline-flex items-center justify-center rounded-md bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-rose-900/10 transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400 dark:hover:text-slate-950;
+        @apply inline-flex items-center justify-center rounded-md bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-rose-900/10 transition hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-md dark:bg-rose-500 dark:hover:bg-rose-400 dark:hover:text-slate-950;
     }
 
     .btn-ghost {
-        @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+        @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
     }
 
     .section-kicker {
@@ -165,5 +177,64 @@
 
     .subtle-link {
         @apply font-semibold text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100;
+    }
+
+    .interactive,
+    .interactive-control {
+        transition:
+            color 180ms ease,
+            background-color 180ms ease,
+            border-color 180ms ease,
+            box-shadow 180ms ease,
+            transform 180ms ease;
+    }
+
+    .interactive:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgb(30 64 175 / 0.08);
+    }
+
+    .interactive-control:hover {
+        transform: translateY(-1px);
+        border-color: rgb(147 197 253);
+        background-color: rgb(239 246 255);
+        color: rgb(29 78 216);
+    }
+
+    .dark .interactive-control:hover {
+        border-color: rgb(96 165 250 / 0.35);
+        background-color: rgb(59 130 246 / 0.12);
+        color: rgb(191 219 254);
+    }
+
+    .page-enter {
+        animation: page-enter 320ms ease-out both;
+    }
+}
+
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
     }
 }

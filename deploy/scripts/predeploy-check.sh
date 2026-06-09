@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-APP_DIR="${APP_DIR:-/var/www/library-management}"
+APP_DIR="${APP_DIR:-/var/www/html}"
 
 cd "$APP_DIR"
 
@@ -28,6 +28,7 @@ required_files=(
     artisan
     package.json
     resources/js/reader.js
+    deploy/cron/libraflow-scheduler
 )
 
 for required_file in "${required_files[@]}"; do

@@ -70,6 +70,21 @@ class Book extends Model
         return $this->hasMany(ReadingSession::class);
     }
 
+    public function digitalLoans(): HasMany
+    {
+        return $this->hasMany(DigitalLoan::class);
+    }
+
+    public function activeDigitalLoans(): HasMany
+    {
+        return $this->digitalLoans()->active();
+    }
+
+    public function booklistEntries(): HasMany
+    {
+        return $this->hasMany(Booklist::class);
+    }
+
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
         return $query->when($term, function (Builder $query, string $term): void {

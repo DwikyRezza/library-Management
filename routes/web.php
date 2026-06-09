@@ -9,7 +9,9 @@ use App\Http\Controllers\BookCopyController;
 use App\Http\Controllers\CirculationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MemberAuthController;
+use App\Http\Controllers\MemberBooklistController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberDigitalLoanController;
 use App\Http\Controllers\MemberReaderController;
 use App\Http\Controllers\MemberRegistrationController;
 use App\Http\Controllers\PublicBookController;
@@ -43,6 +45,21 @@ Route::middleware('auth:member')->group(function (): void {
     Route::put('/member/profile', [MemberProfileController::class, 'update'])->name('member.profile.update');
 
     Route::middleware(['member.profile.complete', 'member.reader'])->group(function (): void {
+        Route::get('/member/borrowed', [MemberDigitalLoanController::class, 'index'])
+            ->name('member.borrowed.index');
+        Route::get('/member/booklist', [MemberBooklistController::class, 'index'])
+            ->name('member.booklist.index');
+        Route::post('/member/booklist/{book}', [MemberBooklistController::class, 'store'])
+            ->name('member.booklist.store');
+        Route::delete('/member/booklist/{book}', [MemberBooklistController::class, 'destroy'])
+            ->name('member.booklist.destroy');
+        Route::post('/member/borrow/{book}', [MemberDigitalLoanController::class, 'store'])
+            ->name('member.digital-loans.store');
+        Route::post('/member/borrowed/{digitalLoan}/extend', [MemberDigitalLoanController::class, 'extend'])
+            ->name('member.borrowed.extend');
+        Route::delete('/member/borrowed/{digitalLoan}', [MemberDigitalLoanController::class, 'destroy'])
+            ->name('member.borrowed.return');
+
         Route::get('/read/{book}', [MemberReaderController::class, 'open'])
             ->middleware('throttle:30,1')
             ->name('member.reader.open');

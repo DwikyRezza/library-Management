@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-APP_DIR="${APP_DIR:-/var/www/library-management}"
+APP_DIR="${APP_DIR:-/var/www/html}"
 maintenance_enabled=0
 
 restore_application() {
@@ -26,6 +26,7 @@ maintenance_enabled=1
 
 composer install --no-interaction --prefer-dist --optimize-autoloader
 npm ci
+rm -rf -- public/build
 npm run build
 php artisan config:clear
 APP_ENV=testing APP_MAINTENANCE_DRIVER=cache APP_MAINTENANCE_STORE=array php artisan test

@@ -127,6 +127,7 @@ class ProductionReadinessTest extends TestCase
         $nginx = $this->readProjectFile('deploy/nginx/libraflow.conf');
         $php = $this->readProjectFile('deploy/php/99-libraflow.ini');
         $supervisor = $this->readProjectFile('deploy/supervisor/libraflow-worker.conf');
+        $cron = $this->readProjectFile('deploy/cron/libraflow-scheduler');
         $predeploy = $this->readProjectFile('deploy/scripts/predeploy-check.sh');
         $deploy = $this->readProjectFile('deploy/scripts/deploy.sh');
 
@@ -140,13 +141,22 @@ class ProductionReadinessTest extends TestCase
         $this->assertStringContainsString('client_max_body_size 128m;', $nginx);
         $this->assertStringContainsString('upload_max_filesize = 100M', $php);
         $this->assertStringContainsString('post_max_size = 128M', $php);
+        $this->assertStringContainsString('root /var/www/html/public;', $nginx);
+        $this->assertStringContainsString('php8.4-fpm.sock', $nginx);
         $this->assertStringContainsString('--timeout=660', $supervisor);
         $this->assertStringContainsString('stopwaitsecs=700', $supervisor);
+        $this->assertStringContainsString('/usr/bin/php8.4 /var/www/html/artisan', $supervisor);
+        $this->assertStringContainsString('php8.4 artisan schedule:run', $cron);
+        $this->assertStringContainsString('cd /var/www/html', $cron);
+        $this->assertStringContainsString('deploy/cron/libraflow-scheduler', $predeploy);
+        $this->assertStringContainsString('APP_DIR="${APP_DIR:-/var/www/html}"', $predeploy);
         $this->assertStringContainsString('app:production-check', $predeploy);
         $this->assertStringNotContainsString('scripts/render-pdf.mjs', $predeploy);
         $this->assertStringNotContainsString('scripts/watermark-page.mjs', $predeploy);
         $testCommand = 'APP_ENV=testing APP_MAINTENANCE_DRIVER=cache APP_MAINTENANCE_STORE=array php artisan test';
         $this->assertStringContainsString($testCommand, $deploy);
+        $this->assertStringContainsString('APP_DIR="${APP_DIR:-/var/www/html}"', $deploy);
+        $this->assertStringContainsString('rm -rf -- public/build', $deploy);
         $this->assertStringContainsString('php artisan migrate --force', $deploy);
         $this->assertTrue(
             strpos($deploy, 'php artisan down') < strpos($deploy, 'composer install'),

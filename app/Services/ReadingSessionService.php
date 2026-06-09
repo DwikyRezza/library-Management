@@ -12,8 +12,20 @@ use Illuminate\Validation\ValidationException;
 
 class ReadingSessionService
 {
+    public function __construct(
+        private readonly DigitalLoanService $digitalLoanService,
+    ) {}
+
     public function start(Member $member, Book $book, Request $request): ReadingSession
     {
+        $this->digitalLoanService->syncExpiredForMember($member);
+
+        if (! $member->digitalLoans()->active()->where('book_id', $book->id)->exists()) {
+            throw ValidationException::withMessages([
+                'book' => 'Pinjam buku digital ini terlebih dahulu sebelum mulai membaca.',
+            ]);
+        }
+
         $asset = $book->digitalAsset;
 
         if (! $asset?->isReady()) {

@@ -101,13 +101,33 @@
 </section>
 
 <section class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-    <div class="panel flex flex-col gap-5 bg-blue-50/70 p-6 dark:bg-blue-500/10 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <p class="section-kicker">Ready to borrow?</p>
-            <h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">Join your campus library community.</h2>
-            <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Registration takes only a few minutes and is reviewed by a librarian.</p>
+    @auth('member')
+        <div class="grid gap-4 md:grid-cols-3">
+            <a href="{{ route('books.search') }}" class="panel interactive p-5">
+                <p class="section-kicker">Catalog</p>
+                <h2 class="mt-2 text-xl font-black text-slate-950 dark:text-white">Find your next book</h2>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Explore available digital titles.</p>
+            </a>
+            <a href="{{ route('member.booklist.index') }}" class="panel interactive p-5">
+                <p class="section-kicker">Booklist</p>
+                <h2 class="mt-2 text-xl font-black text-slate-950 dark:text-white">{{ $booklistCount }} saved books</h2>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Return to books that caught your attention.</p>
+            </a>
+            <a href="{{ route('member.borrowed.index') }}" class="panel interactive p-5">
+                <p class="section-kicker">Borrowed</p>
+                <h2 class="mt-2 text-xl font-black text-slate-950 dark:text-white">{{ $digitalLoanCount }}/3 active loans</h2>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Continue reading or check due dates.</p>
+            </a>
         </div>
-        <a href="{{ route('member.register') }}" class="btn-primary self-start sm:self-auto">Register as member</a>
-    </div>
+    @else
+        <div class="panel flex flex-col gap-5 bg-blue-50/70 p-6 dark:bg-blue-500/10 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="section-kicker">Ready to borrow?</p>
+                <h2 class="mt-2 text-2xl font-black text-slate-950 dark:text-white">Join your campus library community.</h2>
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Registration takes only a few minutes and is reviewed by a librarian.</p>
+            </div>
+            <a href="{{ route('member.register') }}" class="btn-primary self-start sm:self-auto">Register as member</a>
+        </div>
+    @endauth
 </section>
 @endsection

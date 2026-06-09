@@ -55,6 +55,18 @@ class BookCopy extends Model
             ->latestOfMany();
     }
 
+    public function digitalLoans(): HasMany
+    {
+        return $this->hasMany(DigitalLoan::class);
+    }
+
+    public function activeDigitalLoan(): HasOne
+    {
+        return $this->hasOne(DigitalLoan::class)
+            ->active()
+            ->latestOfMany();
+    }
+
     public function scopeAvailable(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_AVAILABLE);

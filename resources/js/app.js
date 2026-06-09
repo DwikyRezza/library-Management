@@ -1,6 +1,15 @@
 import './bootstrap';
 import Alpine from 'alpinejs';
-import { createIcons, LogOut, Menu, Moon, Sun } from 'lucide';
+import {
+    Bookmark,
+    BookOpenCheck,
+    createIcons,
+    LogOut,
+    Menu,
+    Moon,
+    Sun,
+    UserRound,
+} from 'lucide';
 
 window.Alpine = Alpine;
 
@@ -18,9 +27,12 @@ Alpine.start();
 
 createIcons({
     icons: {
+        Bookmark,
+        BookOpenCheck,
         LogOut,
         Menu,
         Moon,
         Sun,
+        UserRound,
     },
 });

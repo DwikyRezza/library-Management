@@ -28,6 +28,9 @@ graph TD
 
 ### 3. Flow E-Book Reader (Digital Reading)
 * Buku digital (PDF) diunggah oleh Admin dan disimpan langsung ke **AWS S3** (`digital-books/{uuid}/original.pdf`).
+* Member harus menekan **Borrow** lebih dulu. Pinjaman digital memakai satu `BookCopy`, mengurangi `available_copies`, berlaku 10 hari, dan memiliki kuota terpisah maksimal 3 buku aktif.
+* Tombol **Read** baru muncul setelah member memiliki `DigitalLoan` aktif untuk buku tersebut.
+* Perpanjangan hanya tersedia sekali pada 24 jam terakhir dan menambah 10 hari. Pinjaman yang melewati jatuh tempo dikembalikan otomatis oleh Laravel Scheduler.
 * Saat member mengklik *Read*, sistem membuat `ReadingSession` baru.
 * Laravel melakukan streaming PDF asli melalui endpoint privat yang hanya dapat diakses pemilik sesi baca.
 * PDF.js di browser merender satu halaman pada satu waktu ke canvas. Tombol **Sebelumnya** dan **Berikutnya** mengganti halaman tanpa membuat PNG di server.
@@ -49,6 +52,8 @@ Setiap model merepresentasikan satu tabel di database dengan relasi antartabel y
 * **[BorrowTransaction.php](file:///d:/Rezza/Self%20Project/library-management/app/Models/BorrowTransaction.php):** Mencatat transaksi peminjaman fisik. Menyimpan relasi ke buku kopi, member, staff yang melayani peminjaman, tanggal jatuh tempo, dan tanggal pengembalian.
 * **[Branch.php](file:///d:/Rezza/Self%20Project/library-management/app/Models/Branch.php):** Program Studi/Jurusan member perpustakaan (e.g. Informatika, Sistem Informasi).
 * **[DigitalBookAsset.php](file:///d:/Rezza/Self%20Project/library-management/app/Models/DigitalBookAsset.php):** Data e-book yang terhubung dengan `Book`. Menyimpan info enkripsi file e-book di AWS S3, hash SHA-256 untuk integritas, dan jumlah halaman (`page_count`).
+* **DigitalLoan.php:** Transaksi pinjaman digital 10 hari yang menghubungkan member, buku, dan satu copy buku.
+* **Booklist.php:** Daftar buku yang disimpan member untuk dipinjam atau dibaca nanti.
 * **[Member.php](file:///d:/Rezza/Self%20Project/library-management/app/Models/Member.php):** Data detail profil member perpustakaan.
 * **[MemberCategory.php](file:///d:/Rezza/Self%20Project/library-management/app/Models/MemberCategory.php):** Mengatur limitasi pinjam buku berdasarkan tipe member (e.g. Mahasiswa reguler bisa pinjam max 3 buku selama 14 hari, sedangkan Dosen/Peneliti bisa lebih).
 * **[ReadingSession.php](file:///d:/Rezza/Self%20Project/library-management/app/Models/ReadingSession.php):** Sesi membaca e-book aktif. Menyimpan informasi halaman terakhir yang dibaca, durasi baca, IP address, user agent, dan status pembacaan.
@@ -65,6 +70,8 @@ Bertanggung jawab memproses input request, berinteraksi dengan service layer, da
 * **[MemberRegistrationController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/MemberRegistrationController.php):** Memproses registrasi awal bagi calon member baru.
 * **[MemberProfileController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/MemberProfileController.php):** Memungkinkan member untuk melihat serta mengupdate kelengkapan profil mereka sendiri.
 * **[MemberReaderController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/MemberReaderController.php):** Controller utama untuk interaksi membaca e-book. Mengotorisasi sesi, melakukan streaming PDF privat, dan menerima *heartbeat* progres baca.
+* **MemberDigitalLoanController.php:** Menampilkan halaman Borrowed serta menangani borrow, extend, dan return.
+* **MemberBooklistController.php:** Menangani halaman Booklist dan aksi simpan/hapus buku milik member.
 * **[PublicBookController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/PublicBookController.php):** Menangani halaman utama pencarian katalog publik bagi pengunjung luar maupun member.
 * **[SocialiteController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/SocialiteController.php):** Mengintegrasikan login member secara instan melalui Google OAuth (Google Sign-In).
 
@@ -93,6 +100,7 @@ Layer bisnis logika (business logic) terpisah yang menjaga agar Controller tetap
 * **[CirculationService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/CirculationService.php):** Bisnis logika di balik transaksi sirkulasi. Memvalidasi batasan member, menghitung denda keterlambatan, mengubah status salinan buku, dan mencatatnya ke database.
 * **[DigitalBookService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/DigitalBookService.php):** Mengelola upload file PDF secara aman ke AWS S3 dan penghapusan berkas dari S3 jika aset digital dihapus.
 * **[ReadingSessionService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/ReadingSessionService.php):** Membuka sesi membaca e-book baru, memvalidasi progres pembacaan, dan memproses heartbeat periodik untuk mencatat waktu aktif membaca member.
+* **DigitalLoanService.php:** Menjaga borrow, extend, return, dan expire tetap transaksional serta sinkron dengan stok copy buku.
 * **[ReportService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/ReportService.php):** Mengompilasi data mentah dari database menjadi metrik laporan analitis yang siap diekspor.
 * **[MemberService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/MemberService.php):** Menangani proses approval pendaftaran member serta perubahan status keaktifannya.
 
@@ -216,9 +224,9 @@ Contoh jika memakai Git:
 
 ```bash
 cd /var/www
-sudo git clone URL_REPOSITORY_ANDA library-management
-sudo chown -R ubuntu:www-data /var/www/library-management
-cd /var/www/library-management
+sudo git clone URL_REPOSITORY_ANDA html
+sudo chown -R ubuntu:www-data /var/www/html
+cd /var/www/html
 ```
 
 Jika repository private, gunakan deploy key atau cara autentikasi dari Git hosting. Jangan hardcode token di file project.
@@ -226,9 +234,10 @@ Jika repository private, gunakan deploy key atau cara autentikasi dari Git hosti
 ### 5. Install Dependency Aplikasi
 
 ```bash
-cd /var/www/library-management
+cd /var/www/html
 composer install --no-interaction --prefer-dist --optimize-autoloader
 npm ci
+sudo rm -rf /var/www/html/public/build
 npm run build
 ```
 
@@ -316,10 +325,12 @@ Jangan jalankan `migrate:fresh` atau seeder dummy di production karena bisa meng
 ### 8. Permission Folder Laravel
 
 ```bash
-sudo chown -R www-data:www-data /var/www/library-management/storage
-sudo chown -R www-data:www-data /var/www/library-management/bootstrap/cache
-sudo chmod -R 775 /var/www/library-management/storage
-sudo chmod -R 775 /var/www/library-management/bootstrap/cache
+sudo chown -R www-data:www-data /var/www/html/storage
+sudo chown -R www-data:www-data /var/www/html/bootstrap/cache
+sudo chown -R www-data:www-data /var/www/html/public
+sudo chmod -R 775 /var/www/html/storage
+sudo chmod -R 775 /var/www/html/bootstrap/cache
+sudo chmod -R 775 /var/www/html/public
 ```
 
 Jangan gunakan `chmod 777` kecuali benar-benar darurat dan sementara.
@@ -329,14 +340,14 @@ Jangan gunakan `chmod 777` kecuali benar-benar darurat dan sementara.
 Project ini mendukung upload PDF sampai 100 MB. Pasang template PHP:
 
 ```bash
-sudo cp deploy/php/99-libraflow.ini /etc/php/8.3/fpm/conf.d/99-libraflow.ini
-sudo systemctl restart php8.3-fpm
+sudo cp deploy/php/99-libraflow.ini /etc/php/8.4/fpm/conf.d/99-libraflow.ini
+sudo systemctl restart php8.4-fpm
 ```
 
 Cek:
 
 ```bash
-php-fpm8.3 -i | grep -E "upload_max_filesize|post_max_size"
+php-fpm8.4 -i | grep -E "upload_max_filesize|post_max_size"
 ```
 
 Nilai yang diharapkan:
@@ -357,7 +368,7 @@ Ubah:
 
 ```nginx
 server_name domain-kamu.com www.domain-kamu.com;
-root /var/www/library-management/public;
+root /var/www/html/public;
 ```
 
 Aktifkan:
@@ -388,6 +399,26 @@ Status yang diharapkan:
 libraflow-worker:libraflow-worker_00 RUNNING
 ```
 
+### 11A. Pasang Laravel Scheduler
+
+Scheduler wajib aktif agar pinjaman digital yang melewati batas 10 hari dikembalikan otomatis.
+
+```bash
+sudo cp deploy/cron/libraflow-scheduler /etc/cron.d/libraflow-scheduler
+sudo chown root:root /etc/cron.d/libraflow-scheduler
+sudo chmod 644 /etc/cron.d/libraflow-scheduler
+sudo systemctl restart cron
+sudo systemctl status cron --no-pager
+```
+
+Tes scheduler secara manual:
+
+```bash
+cd /var/www/html
+sudo -u www-data php8.4 artisan schedule:list
+sudo -u www-data php8.4 artisan digital-loans:expire
+```
+
 ### 12. Aktifkan HTTPS
 
 Jika memakai domain:
@@ -415,7 +446,7 @@ php artisan optimize
 ### 13. Jalankan Production Check
 
 ```bash
-cd /var/www/library-management
+cd /var/www/html
 php artisan app:production-check
 ```
 
@@ -440,9 +471,11 @@ bash deploy/scripts/deploy.sh
 Untuk update berikutnya:
 
 ```bash
-cd /var/www/library-management
+cd /var/www/html
 git pull
+sudo rm -rf /var/www/html/public/build
 bash deploy/scripts/deploy.sh
+sudo chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
 ```
 
 Catatan:
@@ -465,7 +498,11 @@ Buka web dan cek:
 - upload cover ke S3 berhasil;
 - upload PDF digital berhasil;
 - status PDF langsung `ready`;
-- member bisa klik `Read`;
+- member melihat `Borrow` sebelum meminjam dan jumlah copy berkurang setelah pinjaman berhasil;
+- tombol `Read` baru muncul pada buku yang sedang dipinjam;
+- halaman Booklist dan Borrowed dapat dibuka;
+- opsi Extend hanya muncul dalam 24 jam terakhir;
+- `sudo -u www-data php8.4 artisan digital-loans:expire` dapat mengembalikan loan kedaluwarsa;
 - reader menampilkan teks PDF satu halaman pada satu waktu;
 - tombol **Sebelumnya** dan **Berikutnya** dapat mengganti halaman;
 - logout member berhasil;
@@ -497,7 +534,7 @@ Setelah mengubah `.env`, jalankan:
 ```bash
 php artisan optimize:clear
 php artisan optimize
-sudo systemctl reload php8.3-fpm
+sudo systemctl reload php8.4-fpm
 ```
 
 Pastikan juga `SESSION_DOMAIN=null` jika belum memakai subdomain khusus.

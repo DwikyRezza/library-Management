@@ -3,7 +3,9 @@
 namespace Tests\Feature\LibraFlow;
 
 use App\Models\Book;
+use App\Models\BookCopy;
 use App\Models\DigitalBookAsset;
+use App\Models\DigitalLoan;
 use App\Models\Member;
 use App\Models\ReadingSession;
 use App\Models\User;
@@ -24,13 +26,27 @@ class DigitalReaderTest extends TestCase
             ->assertRedirect(route('member.login'));
     }
 
-    public function test_pending_member_can_open_a_ready_digital_book(): void
+    public function test_approved_member_without_an_active_loan_cannot_open_a_ready_digital_book(): void
     {
-        $member = Member::factory()->pending()->create();
+        $member = Member::factory()->create();
         [$book] = $this->createReadyBook();
 
-        $response = $this->actingAs($member, 'member')->get("/read/{$book->id}");
+        $this->actingAs($member, 'member')
+            ->from(route('books.search'))
+            ->get("/read/{$book->id}")
+            ->assertRedirect(route('books.search'))
+            ->assertSessionHasErrors('book');
 
+        $this->assertDatabaseCount('reading_sessions', 0);
+    }
+
+    public function test_approved_member_with_an_active_loan_can_open_a_ready_digital_book(): void
+    {
+        $member = Member::factory()->create();
+        [$book] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
+
+        $response = $this->actingAs($member, 'member')->get("/read/{$book->id}");
         $session = ReadingSession::query()->whereBelongsTo($member)->firstOrFail();
 
         $response->assertRedirect(route('member.reader.show', $session));
@@ -53,9 +69,10 @@ class DigitalReaderTest extends TestCase
 
     public function test_only_the_session_owner_can_open_the_reader(): void
     {
-        $owner = Member::factory()->pending()->create();
+        $owner = Member::factory()->create();
         $otherMember = Member::factory()->create();
         [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($owner, $book);
         $session = $this->createReadingSession($owner, $book, $asset);
 
         $this->actingAs($otherMember, 'member')
@@ -65,8 +82,9 @@ class DigitalReaderTest extends TestCase
 
     public function test_session_owner_can_open_the_reader_interface(): void
     {
-        $member = Member::factory()->pending()->create();
+        $member = Member::factory()->create();
         [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
         $session = $this->createReadingSession($member, $book, $asset);
 
         $this->actingAs($member, 'member')
@@ -84,8 +102,9 @@ class DigitalReaderTest extends TestCase
         config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
 
-        $member = Member::factory()->pending()->create();
+        $member = Member::factory()->create();
         [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
         $session = $this->createReadingSession($member, $book, $asset);
         Storage::disk('local')->put($asset->original_path, $this->minimalPdf());
 
@@ -107,9 +126,10 @@ class DigitalReaderTest extends TestCase
         config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
 
-        $owner = Member::factory()->pending()->create();
-        $otherMember = Member::factory()->pending()->create();
+        $owner = Member::factory()->create();
+        $otherMember = Member::factory()->create();
         [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($owner, $book);
         $session = $this->createReadingSession($owner, $book, $asset);
         Storage::disk('local')->put($asset->original_path, $this->minimalPdf());
 
@@ -123,8 +143,9 @@ class DigitalReaderTest extends TestCase
         config(['services.digital_reader.storage_disk' => 's3']);
         Storage::fake('s3');
 
-        $member = Member::factory()->pending()->create();
+        $member = Member::factory()->create();
         [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
         $session = $this->createReadingSession($member, $book, $asset);
         Storage::disk('s3')->put($asset->original_path, $this->minimalPdf());
 
@@ -140,8 +161,9 @@ class DigitalReaderTest extends TestCase
     {
         Carbon::setTestNow('2026-06-06 10:00:00');
 
-        $member = Member::factory()->pending()->create();
+        $member = Member::factory()->create();
         [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
         $session = $this->createReadingSession($member, $book, $asset);
 
         Carbon::setTestNow('2026-06-06 10:02:00');
@@ -163,8 +185,9 @@ class DigitalReaderTest extends TestCase
 
     public function test_heartbeat_records_the_page_count_reported_by_pdfjs(): void
     {
-        $member = Member::factory()->pending()->create();
+        $member = Member::factory()->create();
         [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
         $asset->forceFill(['page_count' => 0])->save();
         $session = $this->createReadingSession($member, $book, $asset);
 
@@ -179,10 +202,39 @@ class DigitalReaderTest extends TestCase
         $this->assertSame(324, $asset->refresh()->page_count);
     }
 
-    public function test_catalog_only_offers_online_reading_for_ready_assets(): void
+    public function test_returned_or_expired_loan_cannot_serve_an_existing_reader_session(): void
+    {
+        config(['services.digital_reader.storage_disk' => 'local']);
+        Storage::fake('local');
+
+        $member = Member::factory()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $loan = $this->createActiveLoan($member, $book);
+        $session = $this->createReadingSession($member, $book, $asset);
+        Storage::disk('local')->put($asset->original_path, $this->minimalPdf());
+
+        $loan->forceFill(['returned_at' => now(), 'return_reason' => DigitalLoan::RETURN_MANUAL])->save();
+
+        $this->actingAs($member, 'member')
+            ->get(route('member.reader.show', $session))
+            ->assertNotFound();
+
+        $loan->forceFill([
+            'returned_at' => null,
+            'return_reason' => null,
+            'due_at' => now()->subMinute(),
+        ])->save();
+
+        $this->actingAs($member, 'member')
+            ->get(route('member.reader.document', $session))
+            ->assertNotFound();
+    }
+
+    public function test_catalog_only_offers_online_reading_for_ready_borrowed_assets(): void
     {
         $member = Member::factory()->create();
         [$readyBook] = $this->createReadyBook();
+        $this->createActiveLoan($member, $readyBook);
         $processingBook = Book::factory()->create(['title' => 'Belum Siap']);
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
         DigitalBookAsset::query()->create([
@@ -206,15 +258,18 @@ class DigitalReaderTest extends TestCase
         $response->assertSee('Sedang diproses');
     }
 
-    public function test_catalog_offers_reading_to_guests_and_redirects_them_to_member_login(): void
+    public function test_catalog_offers_borrowing_to_guests_and_redirects_reader_to_member_login(): void
     {
         [$readyBook] = $this->createReadyBook();
+        BookCopy::factory()->for($readyBook)->create();
+        $readyBook->forceFill(['total_copies' => 1, 'available_copies' => 1])->save();
 
         $response = $this->get('/books/search');
 
         $response->assertOk();
-        $response->assertSee(route('member.reader.open', $readyBook), false);
-        $response->assertSee('Read');
+        $response->assertDontSee(route('member.reader.open', $readyBook), false);
+        $response->assertSee(route('member.login'), false);
+        $response->assertSee('Borrow');
 
         $this->get(route('member.reader.open', $readyBook))
             ->assertRedirect(route('member.login'));
@@ -257,6 +312,25 @@ class DigitalReaderTest extends TestCase
             'duration_seconds' => 0,
             'ip_address' => '127.0.0.1',
             'user_agent' => 'PHPUnit',
+        ]);
+    }
+
+    private function createActiveLoan(Member $member, Book $book): DigitalLoan
+    {
+        $copy = BookCopy::factory()->for($book)->create([
+            'status' => BookCopy::STATUS_BORROWED,
+        ]);
+        $book->forceFill([
+            'total_copies' => 1,
+            'available_copies' => 0,
+        ])->save();
+
+        return DigitalLoan::query()->create([
+            'member_id' => $member->id,
+            'book_id' => $book->id,
+            'book_copy_id' => $copy->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(10),
         ]);
     }
 

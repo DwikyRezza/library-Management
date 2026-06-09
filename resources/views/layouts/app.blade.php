@@ -33,22 +33,48 @@
                 @guest('member')
                     <a href="{{ route('member.register') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950 sm:block dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">Membership</a>
                 @endguest
-                <button type="button" @click="toggleTheme()" class="grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200" aria-label="Toggle color theme">
-                    <span x-text="dark ? 'Light' : 'Dark'" class="text-[10px] font-bold"></span>
+                <button
+                    type="button"
+                    @click="toggleTheme()"
+                    class="interactive-control grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+                    :aria-label="dark ? 'Gunakan tema terang' : 'Gunakan tema gelap'"
+                    :title="dark ? 'Gunakan tema terang' : 'Gunakan tema gelap'"
+                >
+                    <i x-show="!dark" data-lucide="moon" class="size-5" aria-hidden="true"></i>
+                    <i x-show="dark" data-lucide="sun" class="size-5" aria-hidden="true"></i>
                 </button>
                 @auth('member')
                     <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-                        <button @click="open = !open" type="button" class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-                            <span class="grid size-7 place-items-center rounded-md bg-blue-50 text-xs font-black text-blue-700 dark:bg-blue-500/15 dark:text-blue-200">{{ strtoupper(substr(auth('member')->user()->first_name, 0, 1)) }}</span>
-                            <span class="hidden max-w-[110px] truncate sm:inline">{{ auth('member')->user()->first_name }}</span>
+                        <button
+                            @click="open = !open"
+                            type="button"
+                            class="interactive-control grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+                            aria-label="Buka menu profil"
+                            title="Profil"
+                        >
+                            <i data-lucide="user-round" class="size-5" aria-hidden="true"></i>
                         </button>
 
-                        <div x-cloak x-show="open" x-transition class="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-white/10 dark:bg-slate-900">
-                            <a href="{{ route('member.profile') }}" class="block rounded-md px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Setting Profil</a>
+                        <div x-cloak x-show="open" x-transition class="absolute right-0 z-50 mt-2 w-52 origin-top-right rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-white/10 dark:bg-slate-900">
+                            <a href="{{ route('member.profile') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+                                <i data-lucide="user-round" class="size-4" aria-hidden="true"></i>
+                                Profil
+                            </a>
+                            <a href="{{ route('member.booklist.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+                                <i data-lucide="bookmark" class="size-4" aria-hidden="true"></i>
+                                Booklist
+                            </a>
+                            <a href="{{ route('member.borrowed.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+                                <i data-lucide="book-open-check" class="size-4" aria-hidden="true"></i>
+                                Borrowed
+                            </a>
                             <hr class="my-1 border-slate-100 dark:border-white/10" />
                             <form method="POST" action="{{ route('member.logout') }}" class="block">
                                 @csrf
-                                <button type="submit" class="block w-full rounded-md px-4 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10">Keluar</button>
+                                <button type="submit" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10">
+                                    <i data-lucide="log-out" class="size-4" aria-hidden="true"></i>
+                                    Keluar
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -59,7 +85,7 @@
         </div>
     </header>
 
-    <main>
+    <main class="page-enter">
         <div class="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
             <x-alert />
         </div>

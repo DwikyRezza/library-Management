@@ -81,6 +81,21 @@ class Member extends Authenticatable
         return $this->hasMany(ReadingSession::class);
     }
 
+    public function digitalLoans(): HasMany
+    {
+        return $this->hasMany(DigitalLoan::class);
+    }
+
+    public function activeDigitalLoans(): HasMany
+    {
+        return $this->digitalLoans()->active();
+    }
+
+    public function booklistEntries(): HasMany
+    {
+        return $this->hasMany(Booklist::class);
+    }
+
     public function fullName(): Attribute
     {
         return Attribute::make(

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ReadingHeartbeatRequest;
 use App\Models\Book;
 use App\Models\ReadingSession;
+use App\Services\DigitalLoanService;
 use App\Services\ReadingSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MemberReaderController extends Controller
 {
+    public function __construct(
+        private readonly DigitalLoanService $digitalLoanService,
+    ) {}
+
     public function open(Book $book, Request $request, ReadingSessionService $readingSessionService): RedirectResponse
     {
         $book->load('digitalAsset');
@@ -26,7 +31,7 @@ class MemberReaderController extends Controller
 
     public function show(ReadingSession $readingSession): View
     {
-        $this->ensureOwner($readingSession);
+        $this->ensureActiveLoan($readingSession);
         $readingSession->load(['book', 'digitalBookAsset']);
 
         abort_unless($readingSession->digitalBookAsset?->isReady(), 404);
@@ -40,7 +45,7 @@ class MemberReaderController extends Controller
 
     public function document(ReadingSession $readingSession): StreamedResponse
     {
-        $this->ensureOwner($readingSession);
+        $this->ensureActiveLoan($readingSession);
         $readingSession->loadMissing('digitalBookAsset');
         $asset = $readingSession->digitalBookAsset;
 
@@ -71,6 +76,8 @@ class MemberReaderController extends Controller
         ReadingSession $readingSession,
         ReadingSessionService $readingSessionService
     ): JsonResponse {
+        $this->ensureActiveLoan($readingSession);
+
         $session = $readingSessionService->heartbeat(
             $readingSession,
             $request->integer('page'),
@@ -90,6 +97,8 @@ class MemberReaderController extends Controller
         ReadingSession $readingSession,
         ReadingSessionService $readingSessionService
     ): JsonResponse {
+        $this->ensureActiveLoan($readingSession);
+
         $session = $readingSessionService->heartbeat(
             $readingSession,
             $request->integer('page'),
@@ -107,6 +116,22 @@ class MemberReaderController extends Controller
     private function ensureOwner(ReadingSession $session): void
     {
         abort_unless($session->member_id === Auth::guard('member')->id(), 404);
+    }
+
+    private function ensureActiveLoan(ReadingSession $session): void
+    {
+        $this->ensureOwner($session);
+
+        $member = Auth::guard('member')->user();
+        $this->digitalLoanService->syncExpiredForMember($member);
+
+        abort_unless(
+            $member->digitalLoans()
+                ->active()
+                ->where('book_id', $session->book_id)
+                ->exists(),
+            404,
+        );
     }
 
     private function digitalBookDiskName(): string

@@ -77,7 +77,8 @@ class MemberAuthenticationTest extends TestCase
         $this->actingAs($member, 'member')
             ->get('/books/search')
             ->assertOk()
-            ->assertSee('Setting Profil')
+            ->assertSee('data-lucide="user-round"', false)
+            ->assertSee('Profil')
             ->assertSee('Keluar')
             ->assertDontSee('Login member');
     }
