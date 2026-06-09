@@ -17,7 +17,7 @@ class BranchFactory extends Factory
 
         return [
             'name' => Str::title($name),
-            'code' => Str::upper(Str::substr(Str::slug($name, ''), 0, 6)),
+            'code' => Str::upper(fake()->unique()->bothify('BR-####??')),
         ];
     }
 }

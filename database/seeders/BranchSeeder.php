@@ -13,6 +13,21 @@ class BranchSeeder extends Seeder
         ['name' => 'Information System', 'code' => 'IS'],
         ['name' => 'Electrical Engineering', 'code' => 'EE'],
         ['name' => 'Management', 'code' => 'MGT'],
+        ['name' => 'Teknik Komputer', 'code' => 'TK'],
+        ['name' => 'Teknik Sipil', 'code' => 'TS'],
+        ['name' => 'Teknik Mesin', 'code' => 'TM'],
+        ['name' => 'Teknik Industri', 'code' => 'TIND'],
+        ['name' => 'Arsitektur', 'code' => 'ARS'],
+        ['name' => 'Akuntansi', 'code' => 'AKT'],
+        ['name' => 'Administrasi Bisnis', 'code' => 'ADB'],
+        ['name' => 'Ilmu Hukum', 'code' => 'HK'],
+        ['name' => 'Psikologi', 'code' => 'PSI'],
+        ['name' => 'Kedokteran', 'code' => 'KED'],
+        ['name' => 'Keperawatan', 'code' => 'KEP'],
+        ['name' => 'Farmasi', 'code' => 'FAR'],
+        ['name' => 'Kesehatan Masyarakat', 'code' => 'KM'],
+        ['name' => 'Ilmu Komunikasi', 'code' => 'IKOM'],
+        ['name' => 'Agribisnis', 'code' => 'AGB'],
     ];
 
     /**

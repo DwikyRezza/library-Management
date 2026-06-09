@@ -16,7 +16,7 @@ class BranchSeederTest extends TestCase
         $this->seed(BranchSeeder::class);
         $this->seed(BranchSeeder::class);
 
-        $this->assertSame(5, Branch::query()->count());
+        $this->assertSame(20, Branch::query()->count());
         $this->assertDatabaseHas('branches', [
             'name' => 'Information Technology',
             'code' => 'IT',
@@ -24,6 +24,22 @@ class BranchSeederTest extends TestCase
         $this->assertDatabaseHas('branches', [
             'name' => 'Informatics',
             'code' => 'INF',
+        ]);
+        $this->assertDatabaseHas('branches', [
+            'name' => 'Teknik Sipil',
+            'code' => 'TS',
+        ]);
+        $this->assertDatabaseHas('branches', [
+            'name' => 'Akuntansi',
+            'code' => 'AKT',
+        ]);
+        $this->assertDatabaseHas('branches', [
+            'name' => 'Psikologi',
+            'code' => 'PSI',
+        ]);
+        $this->assertDatabaseHas('branches', [
+            'name' => 'Kedokteran',
+            'code' => 'KED',
         ]);
     }
 }
