@@ -46,20 +46,12 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
             ]);
 
-            $categories = collect([
-                ['Technology', 'blue', 'Programming, systems, and practical computing references.'],
-                ['Science', 'emerald', 'Natural science, research methods, and discovery.'],
-                ['Fiction', 'indigo', 'Novels and creative literature.'],
-                ['Business', 'amber', 'Management, leadership, and entrepreneurship.'],
-                ['History', 'rose', 'History, society, and civilization studies.'],
-            ])->mapWithKeys(fn (array $category) => [
-                $category[0] => BookCategory::query()->create([
-                    'name' => $category[0],
-                    'slug' => Str::slug($category[0]),
-                    'color' => $category[1],
-                    'description' => $category[2],
-                ]),
-            ]);
+            $this->call(BookCategorySeeder::class);
+
+            $categories = BookCategory::query()
+                ->whereIn('name', array_column(BookCategorySeeder::CATEGORIES, 'name'))
+                ->get()
+                ->keyBy('name');
 
             $memberCategories = collect([
                 ['Regular Student', 3, 14, 'Default undergraduate borrowing quota.'],
