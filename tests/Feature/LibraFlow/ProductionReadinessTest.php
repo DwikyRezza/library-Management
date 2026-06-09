@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\LibraFlow;
 
-use App\Jobs\RenderDigitalBook;
 use App\Services\ProductionReadinessChecker;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -46,16 +45,6 @@ class ProductionReadinessTest extends TestCase
         $this->assertNotContains('web', $route->gatherMiddleware());
     }
 
-    public function test_database_queue_retry_window_exceeds_pdf_job_timeout(): void
-    {
-        $job = new RenderDigitalBook(1);
-
-        $this->assertGreaterThan(
-            $job->timeout,
-            config('queue.connections.database.retry_after')
-        );
-    }
-
     public function test_production_checker_accepts_safe_runtime_configuration(): void
     {
         $this->app['env'] = 'production';
@@ -69,9 +58,7 @@ class ProductionReadinessTest extends TestCase
             'database.connections.mysql.username' => 'libraflow_user',
             'database.connections.mysql.password' => 'strong-password',
             'queue.default' => 'database',
-            'queue.connections.database.retry_after' => 720,
             'session.secure' => true,
-            'services.digital_reader.job_timeout' => 660,
         ]);
 
         DB::shouldReceive('select')
@@ -106,7 +93,7 @@ class ProductionReadinessTest extends TestCase
         $this->assertStringContainsString('DB_PASSWORD', implode("\n", $errors));
     }
 
-    public function test_production_checker_reports_a_missing_node_binary_without_crashing(): void
+    public function test_production_checker_does_not_require_the_legacy_pdf_renderer(): void
     {
         $this->app['env'] = 'production';
 
@@ -119,9 +106,7 @@ class ProductionReadinessTest extends TestCase
             'database.connections.mysql.username' => 'libraflow_user',
             'database.connections.mysql.password' => 'strong-password',
             'queue.default' => 'database',
-            'queue.connections.database.retry_after' => 720,
             'session.secure' => true,
-            'services.digital_reader.job_timeout' => 660,
             'services.digital_reader.node_binary' => 'definitely-missing-node-binary',
         ]);
 
@@ -132,20 +117,8 @@ class ProductionReadinessTest extends TestCase
 
         $errors = app(ProductionReadinessChecker::class)->errors();
 
-        $this->assertStringContainsString(
-            'Node.js',
-            implode("\n", $errors)
-        );
-    }
-
-    public function test_production_checker_requires_a_supported_node_version(): void
-    {
-        $checker = app(ProductionReadinessChecker::class);
-
-        $this->assertFalse($checker->supportsNodeVersion('v20.19.0'));
-        $this->assertFalse($checker->supportsNodeVersion('not-a-version'));
-        $this->assertTrue($checker->supportsNodeVersion('v22.13.0'));
-        $this->assertTrue($checker->supportsNodeVersion('v24.0.0'));
+        $this->assertStringNotContainsString('PDF renderer', implode("\n", $errors));
+        $this->assertStringNotContainsString('PDF_RENDER_NODE_BINARY', implode("\n", $errors));
     }
 
     public function test_repository_contains_safe_ec2_deployment_artifacts(): void
@@ -170,6 +143,8 @@ class ProductionReadinessTest extends TestCase
         $this->assertStringContainsString('--timeout=660', $supervisor);
         $this->assertStringContainsString('stopwaitsecs=700', $supervisor);
         $this->assertStringContainsString('app:production-check', $predeploy);
+        $this->assertStringNotContainsString('scripts/render-pdf.mjs', $predeploy);
+        $this->assertStringNotContainsString('scripts/watermark-page.mjs', $predeploy);
         $testCommand = 'APP_ENV=testing APP_MAINTENANCE_DRIVER=cache APP_MAINTENANCE_STORE=array php artisan test';
         $this->assertStringContainsString($testCommand, $deploy);
         $this->assertStringContainsString('php artisan migrate --force', $deploy);

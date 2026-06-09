@@ -37,9 +37,13 @@ class ReadingSessionService
         ]);
     }
 
-    public function heartbeat(ReadingSession $session, int $page, bool $finish = false): ReadingSession
-    {
-        return DB::transaction(function () use ($session, $page, $finish): ReadingSession {
+    public function heartbeat(
+        ReadingSession $session,
+        int $page,
+        bool $finish = false,
+        ?int $totalPages = null
+    ): ReadingSession {
+        return DB::transaction(function () use ($session, $page, $finish, $totalPages): ReadingSession {
             $session = ReadingSession::query()
                 ->with('digitalBookAsset')
                 ->whereKey($session->id)
@@ -52,7 +56,11 @@ class ReadingSessionService
                 ]);
             }
 
-            $pageCount = $session->digitalBookAsset->page_count;
+            if ($totalPages !== null && $session->digitalBookAsset->page_count !== $totalPages) {
+                $session->digitalBookAsset->forceFill(['page_count' => $totalPages])->save();
+            }
+
+            $pageCount = $totalPages ?? $session->digitalBookAsset->page_count;
 
             if ($page < 1 || $page > $pageCount) {
                 throw ValidationException::withMessages([

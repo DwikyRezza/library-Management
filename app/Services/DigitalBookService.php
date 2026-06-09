@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Jobs\RenderDigitalBook;
 use App\Models\Book;
 use App\Models\DigitalBookAsset;
 use App\Models\User;
@@ -45,8 +44,10 @@ class DigitalBookService
                     'mime_type' => 'application/pdf',
                     'file_size' => $pdf->getSize(),
                     'sha256' => hash_file('sha256', $pdf->getRealPath()),
-                    'status' => DigitalBookAsset::STATUS_PROCESSING,
+                    'page_count' => 0,
+                    'status' => DigitalBookAsset::STATUS_READY,
                     'uploaded_by' => $uploader->id,
+                    'rendered_at' => now(),
                 ]);
             });
         } catch (Throwable $exception) {
@@ -58,8 +59,6 @@ class DigitalBookService
         if ($previous) {
             $disk->deleteDirectory("digital-books/{$previous->uuid}");
         }
-
-        RenderDigitalBook::dispatch($asset->id)->afterCommit();
 
         return $asset;
     }

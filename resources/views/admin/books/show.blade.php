@@ -136,7 +136,7 @@
         @if (auth()->user()->isAdmin())
             <section class="panel p-5">
                 <h2 class="font-bold">Kelola buku digital</h2>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">PDF asli disimpan privat dan dirender menjadi gambar halaman.</p>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">PDF asli disimpan privat dan dibaca langsung melalui reader.</p>
 
                 @if ($book->digitalAsset)
                     <div class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm dark:border-white/10 dark:bg-white/5">
@@ -146,11 +146,13 @@
                         </div>
                         <p class="mt-2 break-all text-xs text-slate-500 dark:text-slate-400">{{ $book->digitalAsset->original_name }}</p>
                         @if ($book->digitalAsset->isReady())
-                            <p class="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-200">{{ $book->digitalAsset->page_count }} halaman siap dibaca.</p>
+                            <p class="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-200">
+                                Siap dibaca{{ $book->digitalAsset->page_count > 0 ? ' - '.$book->digitalAsset->page_count.' halaman' : '' }}.
+                            </p>
                         @elseif ($book->digitalAsset->status === \App\Models\DigitalBookAsset::STATUS_FAILED)
                             <p class="mt-2 break-words text-xs font-semibold text-rose-700 dark:text-rose-200">{{ $book->digitalAsset->last_error }}</p>
                         @else
-                            <p class="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-200">Menunggu atau sedang diproses oleh queue worker.</p>
+                            <p class="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-200">PDF belum siap dibaca.</p>
                         @endif
                     </div>
                 @endif
@@ -160,13 +162,13 @@
                     <label class="label">{{ $book->digitalAsset ? 'Ganti file PDF' : 'Upload file PDF' }}</label>
                     <input class="input" type="file" name="pdf" accept="application/pdf,.pdf" required>
                     <x-field-error name="pdf" />
-                    <button class="btn-primary mt-4 w-full">{{ $book->digitalAsset ? 'Ganti dan render ulang' : 'Upload dan render' }}</button>
+                    <button class="btn-primary mt-4 w-full">{{ $book->digitalAsset ? 'Ganti PDF' : 'Upload PDF' }}</button>
                 </form>
 
                 @if ($book->digitalAsset)
                     <button type="button" @click="$dispatch('open-modal', 'delete-digital-book')" class="btn-danger mt-3 w-full">Hapus buku digital</button>
                     <x-danger-modal name="delete-digital-book" title="Hapus buku digital?" :action="route('admin.books.digital.destroy', [$book, $book->digitalAsset])" confirm-label="Hapus digital">
-                        Hapus file PDF dan semua gambar privat yang sudah dirender untuk buku ini.
+                        Hapus file PDF privat untuk buku ini.
                     </x-danger-modal>
                 @endif
             </section>

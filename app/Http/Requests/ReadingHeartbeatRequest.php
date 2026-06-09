@@ -19,6 +19,7 @@ class ReadingHeartbeatRequest extends FormRequest
     {
         return [
             'page' => ['required', 'integer', 'min:1'],
+            'total_pages' => ['sometimes', 'integer', 'min:1', 'max:100000'],
         ];
     }
 }

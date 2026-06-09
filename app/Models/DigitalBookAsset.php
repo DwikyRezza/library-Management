@@ -53,6 +53,6 @@ class DigitalBookAsset extends Model
 
     public function isReady(): bool
     {
-        return $this->status === self::STATUS_READY && $this->page_count > 0;
+        return $this->status === self::STATUS_READY && filled($this->original_path);
     }
 }

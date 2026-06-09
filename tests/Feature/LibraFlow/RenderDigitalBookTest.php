@@ -2,61 +2,37 @@
 
 namespace Tests\Feature\LibraFlow;
 
-use App\Contracts\PdfPageRenderer;
 use App\Jobs\RenderDigitalBook;
 use App\Models\Book;
 use App\Models\DigitalBookAsset;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use RuntimeException;
 use Tests\TestCase;
 
 class RenderDigitalBookTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_render_job_marks_the_asset_ready_with_its_page_count(): void
+    public function test_legacy_render_job_marks_the_asset_ready_without_rendering_pages(): void
     {
         $asset = $this->createProcessingAsset();
-        $renderer = new class implements PdfPageRenderer
-        {
-            public function render(DigitalBookAsset $asset): int
-            {
-                return 2;
-            }
-        };
 
-        (new RenderDigitalBook($asset->id))->handle($renderer);
+        (new RenderDigitalBook($asset->id))->handle();
 
         $asset->refresh();
 
         $this->assertSame(DigitalBookAsset::STATUS_READY, $asset->status);
-        $this->assertSame(2, $asset->page_count);
-        $this->assertSame("digital-books/{$asset->uuid}/pages", $asset->pages_path);
+        $this->assertSame(0, $asset->page_count);
+        $this->assertNull($asset->pages_path);
+        $this->assertNull($asset->last_error);
         $this->assertNotNull($asset->rendered_at);
     }
 
-    public function test_render_job_records_a_failed_status_when_renderer_throws(): void
+    public function test_legacy_render_job_ignores_an_asset_that_was_already_deleted(): void
     {
-        $asset = $this->createProcessingAsset();
-        $renderer = new class implements PdfPageRenderer
-        {
-            public function render(DigitalBookAsset $asset): int
-            {
-                throw new RuntimeException('Invalid or encrypted PDF.');
-            }
-        };
+        (new RenderDigitalBook(999999))->handle();
 
-        try {
-            (new RenderDigitalBook($asset->id))->handle($renderer);
-        } catch (RuntimeException) {
-            // Queue retries still need the failure state to be visible to the admin.
-        }
-
-        $asset->refresh();
-
-        $this->assertSame(DigitalBookAsset::STATUS_FAILED, $asset->status);
-        $this->assertSame('Invalid or encrypted PDF.', $asset->last_error);
+        $this->assertDatabaseCount('digital_book_assets', 0);
     }
 
     private function createProcessingAsset(): DigitalBookAsset

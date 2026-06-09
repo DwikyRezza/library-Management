@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\LibraFlow;
 
-use App\Jobs\RenderDigitalBook;
 use App\Models\Book;
 use App\Models\DigitalBookAsset;
 use App\Models\Member;
@@ -18,7 +17,7 @@ class AdminDigitalBookTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_upload_a_pdf_to_private_storage_and_queue_rendering(): void
+    public function test_admin_can_upload_a_pdf_that_is_immediately_ready_to_read(): void
     {
         config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
@@ -34,11 +33,12 @@ class AdminDigitalBookTest extends TestCase
 
         $asset = DigitalBookAsset::query()->whereBelongsTo($book)->firstOrFail();
 
-        $this->assertSame(DigitalBookAsset::STATUS_PROCESSING, $asset->status);
+        $this->assertSame(DigitalBookAsset::STATUS_READY, $asset->status);
+        $this->assertSame(0, $asset->page_count);
         $this->assertSame($admin->id, $asset->uploaded_by);
         $this->assertSame('clean-code.pdf', $asset->original_name);
         Storage::disk('local')->assertExists($asset->original_path);
-        Queue::assertPushed(RenderDigitalBook::class, fn (RenderDigitalBook $job): bool => $job->assetId === $asset->id);
+        Queue::assertNothingPushed();
     }
 
     public function test_librarian_cannot_upload_a_digital_book(): void

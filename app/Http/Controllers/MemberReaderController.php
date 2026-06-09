@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\PageWatermarker;
 use App\Http\Requests\ReadingHeartbeatRequest;
 use App\Models\Book;
 use App\Models\ReadingSession;
@@ -11,10 +10,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MemberReaderController extends Controller
@@ -41,32 +38,16 @@ class MemberReaderController extends Controller
         ]);
     }
 
-    public function page(
-        ReadingSession $readingSession,
-        int $page,
-        PageWatermarker $watermarker
-    ): StreamedResponse {
+    public function document(ReadingSession $readingSession): StreamedResponse
+    {
         $this->ensureOwner($readingSession);
-        $readingSession->loadMissing(['member', 'digitalBookAsset']);
+        $readingSession->loadMissing('digitalBookAsset');
         $asset = $readingSession->digitalBookAsset;
 
-        abort_unless($asset?->isReady() && $page >= 1 && $page <= $asset->page_count, 404);
-
-        try {
-            $path = $watermarker->watermark($asset, $readingSession->member, $readingSession, $page);
-        } catch (RuntimeException $exception) {
-            Log::warning('Digital reader page could not be prepared.', [
-                'asset_id' => $asset->id,
-                'session_id' => $readingSession->id,
-                'page' => $page,
-                'message' => $exception->getMessage(),
-            ]);
-
-            abort(404);
-        }
+        abort_unless($asset?->isReady(), 404);
 
         $disk = Storage::disk($this->digitalBookDiskName());
-        $stream = $disk->readStream($path);
+        $stream = $disk->readStream($asset->original_path);
 
         abort_unless(is_resource($stream), 404);
 
@@ -74,8 +55,8 @@ class MemberReaderController extends Controller
             fpassthru($stream);
             fclose($stream);
         }, 200, [
-            'Content-Type' => 'image/png',
-            'Content-Disposition' => 'inline; filename="page.png"',
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="book.pdf"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
         $response->setPrivate();
@@ -90,7 +71,12 @@ class MemberReaderController extends Controller
         ReadingSession $readingSession,
         ReadingSessionService $readingSessionService
     ): JsonResponse {
-        $session = $readingSessionService->heartbeat($readingSession, $request->integer('page'));
+        $session = $readingSessionService->heartbeat(
+            $readingSession,
+            $request->integer('page'),
+            false,
+            $request->filled('total_pages') ? $request->integer('total_pages') : null,
+        );
 
         return response()->json([
             'lastPage' => $session->last_page,
@@ -104,7 +90,12 @@ class MemberReaderController extends Controller
         ReadingSession $readingSession,
         ReadingSessionService $readingSessionService
     ): JsonResponse {
-        $session = $readingSessionService->heartbeat($readingSession, $request->integer('page'), true);
+        $session = $readingSessionService->heartbeat(
+            $readingSession,
+            $request->integer('page'),
+            true,
+            $request->filled('total_pages') ? $request->integer('total_pages') : null,
+        );
 
         return response()->json([
             'lastPage' => $session->last_page,

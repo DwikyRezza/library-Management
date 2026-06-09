@@ -48,10 +48,9 @@ Route::middleware('auth:member')->group(function (): void {
             ->name('member.reader.open');
         Route::get('/reader/{readingSession}', [MemberReaderController::class, 'show'])
             ->name('member.reader.show');
-        Route::get('/reader/{readingSession}/pages/{page}', [MemberReaderController::class, 'page'])
-            ->whereNumber('page')
-            ->middleware('throttle:120,1')
-            ->name('member.reader.page');
+        Route::get('/reader/{readingSession}/document', [MemberReaderController::class, 'document'])
+            ->middleware('throttle:60,1')
+            ->name('member.reader.document');
         Route::post('/reader/{readingSession}/heartbeat', [MemberReaderController::class, 'heartbeat'])
             ->middleware('throttle:60,1')
             ->name('member.reader.heartbeat');

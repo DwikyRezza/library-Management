@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\LibraFlow;
 
-use App\Contracts\PageWatermarker;
 use App\Models\Book;
 use App\Models\DigitalBookAsset;
 use App\Models\Member;
@@ -74,11 +73,13 @@ class DigitalReaderTest extends TestCase
             ->get(route('member.reader.show', $session))
             ->assertOk()
             ->assertSee($book->title)
-            ->assertSee('Halaman diberi watermark')
-            ->assertSee('Halaman gagal dimuat');
+            ->assertSee('readerCanvas')
+            ->assertSee('/document', false)
+            ->assertSee('Dokumen gagal dimuat')
+            ->assertDontSee('watermark');
     }
 
-    public function test_page_response_is_a_private_watermarked_image(): void
+    public function test_document_response_is_a_private_pdf_for_the_session_owner(): void
     {
         config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
@@ -86,49 +87,38 @@ class DigitalReaderTest extends TestCase
         $member = Member::factory()->pending()->create();
         [$book, $asset] = $this->createReadyBook();
         $session = $this->createReadingSession($member, $book, $asset);
-
-        $this->app->instance(PageWatermarker::class, new class implements PageWatermarker
-        {
-            public function watermark(
-                DigitalBookAsset $asset,
-                Member $member,
-                ReadingSession $session,
-                int $page
-            ): string {
-                $path = "digital-books/{$asset->uuid}/watermarked/{$session->uuid}/page-0001.png";
-                Storage::disk('local')->put($path, 'private-image');
-
-                return $path;
-            }
-        });
+        Storage::disk('local')->put($asset->original_path, $this->minimalPdf());
 
         $response = $this->actingAs($member, 'member')
-            ->get(route('member.reader.page', [$session, 1]));
+            ->get("/reader/{$session->uuid}/document");
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'image/png');
+        $response->assertHeader('content-type', 'application/pdf');
         $cacheControl = $response->headers->get('cache-control', '');
         $this->assertStringContainsString('private', $cacheControl);
         $this->assertStringContainsString('no-store', $cacheControl);
         $this->assertStringNotContainsString('public', $cacheControl);
-        $this->assertStringNotContainsString('.pdf', $response->headers->get('content-disposition', ''));
+        $this->assertStringContainsString('inline', $response->headers->get('content-disposition', ''));
+        $this->assertSame($this->minimalPdf(), $response->streamedContent());
     }
 
-    public function test_page_response_is_not_found_when_rendered_page_file_is_missing(): void
+    public function test_document_response_is_not_found_for_another_member(): void
     {
         config(['services.digital_reader.storage_disk' => 'local']);
         Storage::fake('local');
 
-        $member = Member::factory()->pending()->create();
+        $owner = Member::factory()->pending()->create();
+        $otherMember = Member::factory()->pending()->create();
         [$book, $asset] = $this->createReadyBook();
-        $session = $this->createReadingSession($member, $book, $asset);
+        $session = $this->createReadingSession($owner, $book, $asset);
+        Storage::disk('local')->put($asset->original_path, $this->minimalPdf());
 
-        $this->actingAs($member, 'member')
-            ->get(route('member.reader.page', [$session, 1]))
+        $this->actingAs($otherMember, 'member')
+            ->get("/reader/{$session->uuid}/document")
             ->assertNotFound();
     }
 
-    public function test_page_response_can_stream_watermarked_images_from_the_configured_disk(): void
+    public function test_document_response_can_stream_a_pdf_from_the_configured_disk(): void
     {
         config(['services.digital_reader.storage_disk' => 's3']);
         Storage::fake('s3');
@@ -136,28 +126,14 @@ class DigitalReaderTest extends TestCase
         $member = Member::factory()->pending()->create();
         [$book, $asset] = $this->createReadyBook();
         $session = $this->createReadingSession($member, $book, $asset);
-
-        $this->app->instance(PageWatermarker::class, new class implements PageWatermarker
-        {
-            public function watermark(
-                DigitalBookAsset $asset,
-                Member $member,
-                ReadingSession $session,
-                int $page
-            ): string {
-                $path = "digital-books/{$asset->uuid}/watermarked/{$session->uuid}/page-0001.png";
-                Storage::disk('s3')->put($path, 'private-image-from-s3');
-
-                return $path;
-            }
-        });
+        Storage::disk('s3')->put($asset->original_path, $this->minimalPdf());
 
         $response = $this->actingAs($member, 'member')
-            ->get(route('member.reader.page', [$session, 1]));
+            ->get("/reader/{$session->uuid}/document");
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'image/png');
-        $this->assertSame('private-image-from-s3', $response->streamedContent());
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertSame($this->minimalPdf(), $response->streamedContent());
     }
 
     public function test_heartbeat_updates_last_page_and_caps_recorded_duration(): void
@@ -183,6 +159,24 @@ class DigitalReaderTest extends TestCase
         $this->assertSame(60, $session->duration_seconds);
 
         Carbon::setTestNow();
+    }
+
+    public function test_heartbeat_records_the_page_count_reported_by_pdfjs(): void
+    {
+        $member = Member::factory()->pending()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $asset->forceFill(['page_count' => 0])->save();
+        $session = $this->createReadingSession($member, $book, $asset);
+
+        $this->actingAs($member, 'member')
+            ->postJson(route('member.reader.heartbeat', $session), [
+                'page' => 2,
+                'total_pages' => 324,
+            ])
+            ->assertOk()
+            ->assertJsonPath('lastPage', 2);
+
+        $this->assertSame(324, $asset->refresh()->page_count);
     }
 
     public function test_catalog_only_offers_online_reading_for_ready_assets(): void
@@ -264,5 +258,17 @@ class DigitalReaderTest extends TestCase
             'ip_address' => '127.0.0.1',
             'user_agent' => 'PHPUnit',
         ]);
+    }
+
+    private function minimalPdf(): string
+    {
+        return <<<'PDF'
+%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj
+3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 100 100]>>endobj
+trailer<</Root 1 0 R>>
+%%EOF
+PDF;
     }
 }

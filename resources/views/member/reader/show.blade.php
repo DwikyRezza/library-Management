@@ -5,103 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $book->title }} - LibraFlow Reader</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/reader.js'])
 </head>
-<body class="min-h-screen select-none bg-slate-900 text-slate-100"
-      x-data="{
-          page: {{ $session->last_page }},
-          total: {{ $asset->page_count }},
-          zoom: 100,
-          loading: true,
-          loadError: false,
-          heartbeatTimer: null,
-          pageUrl() {
-              let baseUrl = '{{ route("member.reader.page", [$session, "9999"]) }}';
-              return baseUrl.replace('9999', this.page);
-          },
-          changePage(next) {
-              if (next < 1 || next > this.total) return;
-              this.page = next;
-              this.loading = true;
-              this.loadError = false;
-              this.heartbeat();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-          },
-          heartbeat(finish = false) {
-              let url = finish ? '{{ route("member.reader.finish", $session) }}' : '{{ route("member.reader.heartbeat", $session) }}';
+<body class="min-h-screen bg-slate-100 text-slate-950">
+    <div
+        data-pdf-reader
+        data-document-url="{{ route('member.reader.document', $session) }}"
+        data-heartbeat-url="{{ route('member.reader.heartbeat', $session) }}"
+        data-finish-url="{{ route('member.reader.finish', $session) }}"
+        data-initial-page="{{ max(1, $session->last_page) }}"
+        class="flex min-h-screen flex-col"
+    >
+        <header class="sticky top-0 z-30 border-b border-slate-700 bg-slate-900 px-3 py-3 text-slate-100 shadow-sm">
+            <div class="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                    <h1 class="truncate text-sm font-bold sm:text-base">{{ $book->title }}</h1>
+                    <p class="truncate text-xs text-slate-400">
+                        {{ auth('member')->user()->full_name }} - {{ auth('member')->user()->member_code }}
+                    </p>
+                </div>
 
-              fetch(url, {
-                  method: 'POST',
-                  keepalive: finish,
-                  headers: {
-                      'Content-Type': 'application/json',
-                      'Accept': 'application/json',
-                      'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                  },
-                  body: JSON.stringify({ page: this.page }),
-              });
-          },
-          init() {
-              this.heartbeatTimer = setInterval(() => this.heartbeat(), 15000);
-              window.addEventListener('beforeunload', () => this.heartbeat(true));
-          }
-      }"
-      x-on:contextmenu.prevent
-      x-on:copy.prevent
-      x-on:cut.prevent
-      x-on:dragstart.prevent
-      x-on:keydown.window="
-          if ((event.ctrlKey || event.metaKey) && ['s', 'p', 'u', 'c'].includes(event.key.toLowerCase())) event.preventDefault();
-          if (event.key === 'ArrowLeft') changePage(page - 1);
-          if (event.key === 'ArrowRight') changePage(page + 1);
-      ">
-    <header class="sticky top-0 z-30 border-b border-white/10 bg-slate-900/95 px-4 py-3 backdrop-blur">
-        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
-            <div class="min-w-0">
-                <p class="truncate font-bold">{{ $book->title }}</p>
-                <p class="text-xs text-slate-400">{{ auth('member')->user()->full_name }} - {{ auth('member')->user()->member_code }}</p>
-            </div>
-            <div class="flex items-center gap-2">
-                <button class="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5" x-on:click="zoom = Math.max(60, zoom - 10)">-</button>
-                <span class="w-12 text-center text-xs" x-text="zoom + '%'"></span>
-                <button class="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5" x-on:click="zoom = Math.min(180, zoom + 10)">+</button>
-                <a href="{{ route('books.search') }}" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold hover:bg-blue-500">Tutup</a>
-            </div>
-        </div>
-    </header>
-
-    <main class="mx-auto max-w-7xl px-3 py-6">
-        <div class="mb-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-center text-xs text-amber-100">
-            Halaman diberi watermark identitas dan sesi baca tercatat. Web tidak dapat menjamin pemblokiran screenshot perangkat.
-        </div>
-
-        <div class="relative mx-auto overflow-auto rounded-lg bg-slate-800 p-2 text-center shadow-2xl shadow-slate-950/30">
-            <div x-show="loading" class="absolute inset-0 z-10 grid min-h-96 place-items-center bg-slate-800/80 font-semibold">Memuat halaman...</div>
-            <div x-cloak x-show="loadError" class="grid min-h-96 place-items-center rounded-md border border-rose-400/20 bg-rose-400/10 px-6 py-12 text-center">
-                <div>
-                    <p class="text-lg font-bold text-rose-100">Halaman gagal dimuat</p>
-                    <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-rose-100/80">File halaman hasil render tidak ditemukan atau server gagal membuat watermark. Hubungi admin untuk render ulang buku digital ini.</p>
-                    <button type="button" class="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold hover:bg-blue-500" x-on:click="loading = true; loadError = false; $nextTick(() => { const image = $refs.pageImage; image.src = pageUrl() + '?retry=' + Date.now(); })">Coba muat ulang</button>
+                <div class="flex items-center gap-2">
+                    <button id="readerZoomOut" type="button" aria-label="Perkecil halaman" title="Perkecil"
+                            class="grid size-10 place-items-center rounded-lg border border-slate-600 font-bold hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
+                        -
+                    </button>
+                    <span id="readerZoom" class="w-12 text-center text-xs font-semibold">100%</span>
+                    <button id="readerZoomIn" type="button" aria-label="Perbesar halaman" title="Perbesar"
+                            class="grid size-10 place-items-center rounded-lg border border-slate-600 font-bold hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
+                        +
+                    </button>
+                    <a href="{{ route('books.search') }}"
+                       class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold hover:bg-blue-500">
+                        Tutup
+                    </a>
                 </div>
             </div>
-            <img :src="pageUrl()"
-                 x-ref="pageImage"
-                 :style="`width: ${zoom}%; max-width: none;`"
-                 x-on:load="loading = false; loadError = false"
-                 x-on:error="loading = false; loadError = true"
-                 alt="Halaman buku"
-                 draggable="false"
-                 class="mx-auto block h-auto min-w-[320px]"
-                 x-bind:class="loadError ? 'hidden' : ''">
-        </div>
-    </main>
+        </header>
 
-    <footer class="sticky bottom-0 border-t border-white/10 bg-slate-900/95 px-4 py-3 backdrop-blur">
-        <div class="mx-auto flex max-w-xl items-center justify-between gap-4">
-            <button class="rounded-lg border border-white/10 px-4 py-2 font-bold hover:bg-white/5 disabled:opacity-40" x-on:click="changePage(page - 1)" :disabled="page <= 1">Sebelumnya</button>
-            <span class="text-sm font-semibold">Halaman <span x-text="page"></span> / {{ $asset->page_count }}</span>
-            <button class="rounded-lg bg-blue-600 px-4 py-2 font-bold hover:bg-blue-500 disabled:opacity-40" x-on:click="changePage(page + 1)" :disabled="page >= total">Berikutnya</button>
-        </div>
-    </footer>
+        <main class="flex-1 p-2 sm:p-4">
+            <div id="readerStage"
+                 class="relative mx-auto min-h-[70vh] max-w-screen-2xl overflow-auto rounded-lg border border-slate-300 bg-slate-800 p-4 shadow-lg">
+                <div id="readerLoading"
+                     class="absolute inset-0 z-10 grid min-h-96 place-items-center bg-slate-800 text-sm font-semibold text-slate-100">
+                    Memuat dokumen...
+                </div>
+
+                <div id="readerError"
+                     class="hidden min-h-[70vh] place-items-center rounded-md border border-rose-300 bg-rose-50 px-6 py-12 text-center">
+                    <div>
+                        <p class="text-lg font-bold text-rose-800">Dokumen gagal dimuat</p>
+                        <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-rose-700">
+                            PDF tidak dapat dibaca dari penyimpanan. Coba muat ulang atau hubungi admin jika masalah tetap terjadi.
+                        </p>
+                        <button id="readerRetry" type="button"
+                                class="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500">
+                            Coba muat ulang
+                        </button>
+                    </div>
+                </div>
+
+                <canvas id="readerCanvas"
+                        class="invisible mx-auto block max-w-none bg-white shadow-xl"
+                        aria-label="Halaman buku"></canvas>
+            </div>
+        </main>
+
+        <footer class="sticky bottom-0 z-30 border-t border-slate-700 bg-slate-900 px-3 py-3 text-slate-100 shadow-sm">
+            <div class="mx-auto flex max-w-xl items-center justify-between gap-3">
+                <button id="readerPrevious" type="button"
+                        class="rounded-lg border border-slate-600 px-3 py-2.5 text-sm font-bold hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40 sm:px-5">
+                    Sebelumnya
+                </button>
+                <span class="whitespace-nowrap text-xs font-semibold sm:text-sm">
+                    Halaman <span id="readerPage">1</span> / <span id="readerTotal">-</span>
+                </span>
+                <button id="readerNext" type="button"
+                        class="rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-bold hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40 sm:px-5">
+                    Berikutnya
+                </button>
+            </div>
+        </footer>
+    </div>
 </body>
 </html>

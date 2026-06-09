@@ -29,7 +29,8 @@ graph TD
 ### 3. Flow E-Book Reader (Digital Reading)
 * Buku digital (PDF) diunggah oleh Admin dan disimpan langsung ke **AWS S3** (`digital-books/{uuid}/original.pdf`).
 * Saat member mengklik *Read*, sistem membuat `ReadingSession` baru.
-* PDF tidak diunduh langsung oleh client, melainkan dirender halaman demi halaman di sisi server menggunakan pipeline khusus (`NodePdfPageRenderer` dan watermarking) untuk mencegah plagiarisme/download ilegal.
+* Laravel melakukan streaming PDF asli melalui endpoint privat yang hanya dapat diakses pemilik sesi baca.
+* PDF.js di browser merender satu halaman pada satu waktu ke canvas. Tombol **Sebelumnya** dan **Berikutnya** mengganti halaman tanpa membuat PNG di server.
 * Client mengirimkan *heartbeat* secara periodik untuk memperbarui data waktu baca (reading duration).
 
 ---
@@ -63,7 +64,7 @@ Bertanggung jawab memproses input request, berinteraksi dengan service layer, da
 * **[MemberAuthController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/MemberAuthController.php):** Menangani alur login, otentikasi, dan logout khusus member.
 * **[MemberRegistrationController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/MemberRegistrationController.php):** Memproses registrasi awal bagi calon member baru.
 * **[MemberProfileController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/MemberProfileController.php):** Memungkinkan member untuk melihat serta mengupdate kelengkapan profil mereka sendiri.
-* **[MemberReaderController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/MemberReaderController.php):** Controller utama untuk interaksi membaca e-book. Melayani in-app PDF reader halaman per halaman dengan sistem pengamanan *heartbeat* pencegah pembajakan.
+* **[MemberReaderController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/MemberReaderController.php):** Controller utama untuk interaksi membaca e-book. Mengotorisasi sesi, melakukan streaming PDF privat, dan menerima *heartbeat* progres baca.
 * **[PublicBookController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/PublicBookController.php):** Menangani halaman utama pencarian katalog publik bagi pengunjung luar maupun member.
 * **[SocialiteController.php](file:///d:/Rezza/Self%20Project/library-management/app/Http/Controllers/SocialiteController.php):** Mengintegrasikan login member secara instan melalui Google OAuth (Google Sign-In).
 
@@ -90,11 +91,9 @@ Layer bisnis logika (business logic) terpisah yang menjaga agar Controller tetap
 
 * **[BookService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/BookService.php):** Bisnis logika pembuatan buku baru, manajemen upload gambar cover ke S3, sinkronisasi relasi kategori, dan penghapusan cover lama dari S3 jika diganti.
 * **[CirculationService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/CirculationService.php):** Bisnis logika di balik transaksi sirkulasi. Memvalidasi batasan member, menghitung denda keterlambatan, mengubah status salinan buku, dan mencatatnya ke database.
-* **[DigitalBookService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/DigitalBookService.php):** Mengelola upload file PDF mentah secara aman ke AWS S3, menghitung jumlah halaman PDF asli, serta menginisiasi penghapusan berkas dari S3 jika aset digital dihapus.
+* **[DigitalBookService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/DigitalBookService.php):** Mengelola upload file PDF secara aman ke AWS S3 dan penghapusan berkas dari S3 jika aset digital dihapus.
 * **[ReadingSessionService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/ReadingSessionService.php):** Membuka sesi membaca e-book baru, memvalidasi progres pembacaan, dan memproses heartbeat periodik untuk mencatat waktu aktif membaca member.
 * **[ReportService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/ReportService.php):** Mengompilasi data mentah dari database menjadi metrik laporan analitis yang siap diekspor.
-* **[NodePdfPageRenderer.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/NodePdfPageRenderer.php):** Memanfaatkan skrip Node.js (via `pdfjs-dist`) untuk merender halaman PDF tertentu menjadi gambar (PNG) berkualitas tinggi di backend.
-* **[NodePageWatermarker.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/NodePageWatermarker.php):** Memberikan watermark dinamis secara backend (nama member, email, IP Address, timestamp) di atas halaman buku digital yang telah dirender untuk mencegah pembajakan/screenshot ilegal.
 * **[MemberService.php](file:///d:/Rezza/Self%20Project/library-management/app/Services/MemberService.php):** Menangani proses approval pendaftaran member serta perubahan status keaktifannya.
 
 ---
@@ -117,9 +116,9 @@ Bagian ini adalah checklist praktis setelah kode siap dideploy. Target arsitektu
 Browser user
     -> Nginx di EC2
     -> Laravel PHP-FPM di EC2
-    -> RDS MySQL untuk database, session, cache, queue
-    -> S3 private bucket untuk cover, PDF original, hasil render, dan watermark
-    -> Supervisor queue worker di EC2 untuk render PDF digital
+    -> RDS MySQL untuk database, session, cache, dan queue
+    -> S3 private bucket untuk cover dan PDF original
+    -> PDF.js di browser untuk menampilkan satu halaman PDF
 ```
 
 Jangan menaruh password, access key, atau isi file `.env` di Git, chat, atau dokumentasi publik.
@@ -190,8 +189,8 @@ Install dependency server:
 
 ```bash
 sudo apt install -y nginx git unzip curl supervisor mysql-client \
-    php8.3-fpm php8.3-cli php8.3-mysql php8.3-sqlite3 \
-    php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-bcmath
+    php8.4-fpm php8.4-cli php8.4-mysql php8.4-sqlite3 \
+    php8.4-mbstring php8.4-xml php8.4-curl php8.4-zip php8.4-bcmath
 ```
 
 Install Composer:
@@ -204,7 +203,7 @@ sudo mv composer.phar /usr/local/bin/composer
 composer --version
 ```
 
-Install Node.js 22.13.0 atau lebih baru. Renderer PDF membutuhkan Node modern.
+Install Node.js 22.13.0 atau lebih baru untuk membangun asset Vite dan bundle PDF.js.
 
 ```bash
 node --version
@@ -280,10 +279,7 @@ AWS_BUCKET=NAMA_BUCKET
 AWS_USE_PATH_STYLE_ENDPOINT=false
 AWS_THROW=true
 
-PDF_RENDER_NODE_BINARY=/usr/bin/node
-PDF_RENDER_TIMEOUT=600
-PDF_JOB_TIMEOUT=660
-PDF_WATERMARK_TIMEOUT=60
+READER_HEARTBEAT_CAP=60
 ```
 
 Jika masih testing lewat `http://IP_EC2` dan belum memakai HTTPS:
@@ -376,7 +372,7 @@ Jika `nginx -t` gagal, jangan reload sampai error diperbaiki.
 
 ### 11. Pasang Queue Worker Supervisor
 
-PDF digital tidak langsung siap setelah upload. Worker harus hidup supaya job render berjalan.
+PDF digital langsung siap dibaca setelah upload dan tidak bergantung pada worker. Supervisor tetap dapat dijalankan untuk job queue aplikasi lain.
 
 ```bash
 sudo cp deploy/supervisor/libraflow-worker.conf /etc/supervisor/conf.d/libraflow-worker.conf
@@ -390,14 +386,6 @@ Status yang diharapkan:
 
 ```text
 libraflow-worker:libraflow-worker_00 RUNNING
-```
-
-Jika upload PDF berhasil tetapi status buku digital tetap `processing`, cek worker:
-
-```bash
-sudo supervisorctl status
-tail -n 100 storage/logs/worker.log
-tail -n 100 storage/logs/laravel-*.log
 ```
 
 ### 12. Aktifkan HTTPS
@@ -438,7 +426,6 @@ Jika command ini gagal, baca pesannya satu per satu. Biasanya yang belum benar:
 - `APP_KEY` kosong;
 - database RDS belum tersambung;
 - `SESSION_SECURE_COOKIE` tidak sesuai kondisi HTTPS;
-- Node.js tidak ditemukan di `PDF_RENDER_NODE_BINARY`;
 - permission `storage` atau `bootstrap/cache` salah.
 
 ### 14. Deploy / Update Aplikasi
@@ -477,9 +464,10 @@ Buka web dan cek:
 - tambah buku tanpa PDF berhasil;
 - upload cover ke S3 berhasil;
 - upload PDF digital berhasil;
-- status PDF berubah dari `processing` menjadi `ready`;
+- status PDF langsung `ready`;
 - member bisa klik `Read`;
-- halaman reader tampil sebagai gambar ber-watermark;
+- reader menampilkan teks PDF satu halaman pada satu waktu;
+- tombol **Sebelumnya** dan **Berikutnya** dapat mengganti halaman;
 - logout member berhasil;
 - `sudo supervisorctl status` tetap `RUNNING`;
 - log Laravel tidak berisi error baru.
@@ -540,18 +528,16 @@ sudo supervisorctl status
 Cek:
 
 ```bash
-sudo supervisorctl status
-php artisan queue:failed
-tail -n 100 storage/logs/worker.log
+php artisan optimize:clear
+tail -n 100 storage/logs/laravel-*.log
 ```
 
 Kemungkinan:
 
-- worker tidak jalan;
-- Node.js tidak tersedia atau versinya terlalu lama;
-- `PDF_RENDER_NODE_BINARY` salah;
-- EC2 tidak punya permission membaca/menulis S3;
-- PDF rusak, terenkripsi, atau terlalu berat.
+- EC2 tidak punya permission membaca objek PDF dari S3;
+- route atau asset Vite belum diperbarui setelah deploy;
+- PDF rusak atau terenkripsi password;
+- cache Laravel masih memakai route lama.
 
 #### Web 500 setelah deploy
 

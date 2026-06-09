@@ -26,8 +26,8 @@ done
 required_files=(
     .env
     artisan
-    scripts/render-pdf.mjs
-    scripts/watermark-page.mjs
+    package.json
+    resources/js/reader.js
 )
 
 for required_file in "${required_files[@]}"; do

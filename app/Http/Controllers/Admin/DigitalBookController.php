@@ -20,7 +20,7 @@ class DigitalBookController extends Controller
 
         return redirect()
             ->route('admin.books.show', $book)
-            ->with('success', 'PDF tersimpan privat dan sedang masuk antrean render.');
+            ->with('success', 'PDF tersimpan privat dan siap dibaca.');
     }
 
     public function destroy(
