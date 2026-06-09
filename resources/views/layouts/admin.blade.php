@@ -73,15 +73,30 @@
     <div class="min-h-screen lg:pl-72">
         <header class="admin-header sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 backdrop-blur sm:px-6">
             <div class="flex items-center gap-3">
-                <button @click="sidebarOpen = true" class="grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-xs font-bold dark:border-white/10 dark:bg-slate-900 lg:hidden" aria-label="Open navigation">Menu</button>
+                <button
+                    type="button"
+                    @click="sidebarOpen = true"
+                    class="grid size-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/10 dark:hover:text-blue-200 lg:hidden"
+                    aria-label="Buka navigasi"
+                    title="Buka navigasi"
+                >
+                    <i data-lucide="menu" class="size-5" aria-hidden="true"></i>
+                </button>
                 <div>
                     <h1 class="font-bold text-slate-950 dark:text-slate-100">@yield('page-title', 'Dashboard')</h1>
                     <p class="hidden text-xs text-slate-500 sm:block dark:text-slate-400">@yield('page-description', 'Library operations at a glance')</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 sm:gap-3">
-                <button type="button" @click="toggleTheme()" class="grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200" aria-label="Toggle color theme">
-                    <span x-text="dark ? 'Light' : 'Dark'" class="text-[10px] font-bold"></span>
+                <button
+                    type="button"
+                    @click="toggleTheme()"
+                    class="grid size-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-blue-400/30 dark:hover:bg-blue-500/10 dark:hover:text-blue-200"
+                    :aria-label="dark ? 'Gunakan tema terang' : 'Gunakan tema gelap'"
+                    :title="dark ? 'Gunakan tema terang' : 'Gunakan tema gelap'"
+                >
+                    <i x-show="!dark" data-lucide="moon" class="size-5" aria-hidden="true"></i>
+                    <i x-show="dark" data-lucide="sun" class="size-5" aria-hidden="true"></i>
                 </button>
                 <div class="hidden text-right sm:block">
                     <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ auth()->user()->name }}</p>
@@ -89,7 +104,14 @@
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button class="btn-secondary !px-3">Logout</button>
+                    <button
+                        type="submit"
+                        class="grid size-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-rose-400/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-200"
+                        aria-label="Keluar"
+                        title="Keluar"
+                    >
+                        <i data-lucide="log-out" class="size-5" aria-hidden="true"></i>
+                    </button>
                 </form>
             </div>
         </header>

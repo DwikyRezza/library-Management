@@ -17,6 +17,7 @@
     },
     "dependencies": {
         "@napi-rs/canvas": "^1.0.0",
+        "lucide": "^1.17.0",
         "pdfjs-dist": "^6.0.227"
     }
 }

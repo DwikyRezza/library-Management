@@ -180,6 +180,23 @@ class AdminManagementTest extends TestCase
         }
     }
 
+    public function test_admin_header_uses_icon_controls_for_navigation_theme_and_logout(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('data-lucide="menu"', false)
+            ->assertSee('data-lucide="moon"', false)
+            ->assertSee('data-lucide="sun"', false)
+            ->assertSee('data-lucide="log-out"', false)
+            ->assertSee('title="Buka navigasi"', false)
+            ->assertSee('title="Keluar"', false)
+            ->assertDontSee('>Menu</button>', false)
+            ->assertDontSee('>Logout</button>', false);
+    }
+
     public function test_book_detail_exposes_edit_and_delete_actions(): void
     {
         $user = User::factory()->create(['role' => User::ROLE_ADMIN]);
