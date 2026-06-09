@@ -41,7 +41,8 @@ class NodePageWatermarker implements PageWatermarker
             $session,
             $sourcePath,
             $targetPath,
-            $disk
+            $disk,
+            $filename // <--- SEKARANG SUDAH DITAMBAHKAN DI SINI, WIK!
         ): string {
             if ($disk->exists($targetPath)) {
                 return $targetPath;
