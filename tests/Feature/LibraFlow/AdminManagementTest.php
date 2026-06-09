@@ -9,6 +9,9 @@ use App\Models\BorrowTransaction;
 use App\Models\Member;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Tests\TestCase;
 
 class AdminManagementTest extends TestCase
@@ -42,6 +45,36 @@ class AdminManagementTest extends TestCase
         $this->assertSame(2, $book->available_copies);
         $this->assertDatabaseHas('book_copies', ['copy_code' => sprintf('LIB-%04d-001', $book->id)]);
         $this->assertDatabaseHas('book_copies', ['copy_code' => sprintf('LIB-%04d-002', $book->id)]);
+    }
+
+    public function test_admin_can_create_a_book_cover_without_requesting_a_public_acl(): void
+    {
+        config(['filesystems.default' => 's3']);
+
+        $disk = Mockery::mock();
+        $disk->shouldReceive('put')
+            ->once()
+            ->with('book-covers/private-cover-book.png', Mockery::type('string'))
+            ->andReturnTrue();
+        Storage::shouldReceive('disk')->once()->with('s3')->andReturn($disk);
+
+        $user = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $category = BookCategory::factory()->create();
+
+        $this->actingAs($user)->post('/admin/books', [
+            'title' => 'Private Cover Book',
+            'author' => 'Rani Putri',
+            'category_id' => $category->id,
+            'number_of_copies' => 1,
+            'cover_image' => UploadedFile::fake()->createWithContent(
+                'cover.png',
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='),
+            ),
+        ])->assertRedirect();
+
+        $book = Book::query()->where('title', 'Private Cover Book')->firstOrFail();
+
+        $this->assertSame('book-covers/private-cover-book.png', $book->cover_image);
     }
 
     public function test_category_in_use_cannot_be_deleted(): void

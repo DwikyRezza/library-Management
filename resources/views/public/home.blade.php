@@ -40,7 +40,7 @@
             @forelse ($featuredBooks->take(4) as $book)
                 <article class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
                     @if($book->cover_image)
-                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($book->cover_image) }}" class="mx-auto h-28 w-20 rounded-lg object-cover shadow-sm" alt="{{ $book->title }}">
+                        <img src="{{ route('books.cover', $book) }}" class="mx-auto h-28 w-20 rounded-lg object-cover shadow-sm" alt="{{ $book->title }}">
                     @else
                         <div class="book-cover mx-auto">
                             <span class="text-[9px] font-black uppercase text-blue-500 dark:text-blue-200">Book</span>
@@ -77,7 +77,7 @@
                 <article class="panel p-5 transition hover:border-blue-200 hover:bg-white dark:hover:border-blue-400/20 dark:hover:bg-slate-900/90">
                     <div class="flex items-start gap-4">
                         @if($book->cover_image)
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($book->cover_image) }}" class="h-28 w-20 shrink-0 rounded-lg object-cover shadow-sm" alt="{{ $book->title }}">
+                            <img src="{{ route('books.cover', $book) }}" class="h-28 w-20 shrink-0 rounded-lg object-cover shadow-sm" alt="{{ $book->title }}">
                         @else
                             <div class="book-cover">
                                 <span class="text-[9px] font-black uppercase text-blue-500 dark:text-blue-200">Book</span>

@@ -10,6 +10,7 @@ use App\Models\MemberCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthAndPublicTest extends TestCase
@@ -87,6 +88,22 @@ class AuthAndPublicTest extends TestCase
         $response->assertOk();
         $response->assertSee('Laravel Systems');
         $response->assertSee('Available');
+    }
+
+    public function test_public_can_view_a_private_book_cover_through_the_application(): void
+    {
+        config(['filesystems.default' => 's3']);
+        Storage::fake('s3');
+
+        $book = Book::factory()->create([
+            'cover_image' => 'book-covers/private-cover.jpg',
+        ]);
+        Storage::disk('s3')->put($book->cover_image, 'private-cover-content');
+
+        $this->get("/books/{$book->id}/cover")
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=86400, public')
+            ->assertStreamedContent('private-cover-content');
     }
 
     public function test_public_member_registration_creates_pending_member(): void

@@ -5,10 +5,25 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Models\BookCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PublicBookController extends Controller
 {
+    public function cover(Book $book): StreamedResponse
+    {
+        abort_unless($book->cover_image, 404);
+
+        $disk = Storage::disk((string) config('filesystems.default', 'local'));
+
+        abort_unless($disk->exists($book->cover_image), 404);
+
+        return $disk->response($book->cover_image, null, [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
     public function home(): View
     {
         return view('public.home', [

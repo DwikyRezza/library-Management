@@ -69,7 +69,7 @@ class BookService
             if ($coverImage) {
                 // Delete old cover if it exists
                 if ($book->cover_image) {
-                    Storage::disk('s3')->delete($book->cover_image);
+                    Storage::disk($this->coverDiskName())->delete($book->cover_image);
                 }
                 $book->cover_image = $this->uploadCover($coverImage, $book->slug);
             }
@@ -137,7 +137,7 @@ class BookService
 
             // Delete cover image from S3
             if ($book->cover_image) {
-                Storage::disk('s3')->delete($book->cover_image);
+                Storage::disk($this->coverDiskName())->delete($book->cover_image);
             }
 
             $book->delete();
@@ -151,13 +151,18 @@ class BookService
         $ext = $file->getClientOriginalExtension();
         $path = "book-covers/{$slug}.{$ext}";
 
-        $stored = Storage::disk('s3')->put($path, $file->get(), 'public');
+        $stored = Storage::disk($this->coverDiskName())->put($path, $file->get());
 
         if ($stored === false) {
-            throw new RuntimeException('Gagal menyimpan cover buku. Periksa konfigurasi S3.');
+            throw new RuntimeException('Gagal menyimpan cover buku. Periksa konfigurasi storage.');
         }
 
         return $path;
+    }
+
+    private function coverDiskName(): string
+    {
+        return (string) config('filesystems.default', 'local');
     }
 
     private function uniqueSlug(string $title, ?Book $ignore = null): string

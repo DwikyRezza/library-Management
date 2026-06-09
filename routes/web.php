@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicBookController::class, 'home'])->name('home');
 Route::get('/books/search', [PublicBookController::class, 'search'])->name('books.search');
+Route::get('/books/{book}/cover', [PublicBookController::class, 'cover'])->name('books.cover');
 Route::get('/auth/google/redirect/{type}', [SocialiteController::class, 'redirectToGoogle'])->name('auth.google.redirect');
 Route::get('/auth/google/callback', [SocialiteController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 
@@ -37,7 +38,7 @@ use App\Http\Controllers\MemberProfileController;
 
 Route::middleware('auth:member')->group(function (): void {
     Route::post('/member/logout', [MemberAuthController::class, 'destroy'])->name('member.logout');
-    
+
     Route::get('/member/profile', [MemberProfileController::class, 'show'])->name('member.profile');
     Route::put('/member/profile', [MemberProfileController::class, 'update'])->name('member.profile.update');
 

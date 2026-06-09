@@ -62,7 +62,7 @@
 {{-- File uploads --}}
 <div class="mt-6 grid gap-5 sm:grid-cols-2">
     <div x-data="{
-        preview: @js(isset($book) && $book->cover_image ? \Illuminate\Support\Facades\Storage::disk('s3')->url($book->cover_image) : ''),
+        preview: @js(isset($book) && $book->cover_image ? route('books.cover', $book) : ''),
         change(e) {
             const file = e.target.files[0];
             if (file) this.preview = URL.createObjectURL(file);

@@ -53,7 +53,7 @@
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="flex min-w-0 flex-1 items-center gap-4">
                         @if($book->cover_image)
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($book->cover_image) }}" class="h-28 w-20 shrink-0 rounded-lg object-cover shadow-sm" alt="{{ $book->title }}">
+                            <img src="{{ route('books.cover', $book) }}" class="h-28 w-20 shrink-0 rounded-lg object-cover shadow-sm" alt="{{ $book->title }}">
                         @else
                             <div class="book-cover">
                                 <span class="text-[9px] font-black uppercase text-blue-500 dark:text-blue-200">Book</span>
