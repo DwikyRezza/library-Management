@@ -585,15 +585,36 @@ git pull
 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 php8.4 artisan migrate --force
 php8.4 artisan optimize:clear
-php8.4 artisan optimize
 sudo chown -R www-data:www-data storage bootstrap/cache
+sudo -u www-data php8.4 artisan digital-books:repair-storage
+php8.4 artisan optimize
 sudo systemctl reload php8.4-fpm
 ```
 
 Versi terbaru menyimpan nama disk pada setiap PDF. Aset lama yang belum memiliki
 informasi disk akan mencoba S3 terlebih dahulu lalu otomatis fallback ke
-`storage/app/private` pada EC2. Jika file lama juga sudah tidak ada di folder
-tersebut, unggah ulang PDF melalui halaman admin.
+`storage/app/private` pada EC2.
+
+Command `digital-books:repair-storage` akan:
+
+1. memeriksa apakah PDF sudah tersedia di S3;
+2. mencari PDF lama di storage lokal EC2;
+3. menyalin PDF lokal ke S3 tanpa menghapus file lokal;
+4. memperbarui kolom `storage_disk` pada database;
+5. menampilkan judul buku yang file PDF-nya tidak ditemukan.
+
+Contoh hasil yang sehat:
+
+```text
+[DIPINDAHKAN] Judul Buku: local -> s3
+[OK] Judul Buku Lain: tersedia di s3
+
+Selesai: 1 tersedia, 1 dipindahkan, 0 hilang, 0 gagal.
+```
+
+Jika ada baris `[HILANG]`, file tersebut sudah tidak tersedia baik di S3 maupun
+`storage/app/private`. Kode tidak dapat membuat ulang isi PDF yang sudah hilang,
+jadi unggah ulang PDF untuk judul tersebut melalui halaman admin.
 
 Untuk melihat penyebab storage yang sebenarnya:
 

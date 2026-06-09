@@ -15,6 +15,12 @@ use Throwable;
 
 class DigitalBookService
 {
+    public const REPAIR_AVAILABLE = 'available';
+
+    public const REPAIR_COPIED = 'copied';
+
+    public const REPAIR_MISSING = 'missing';
+
     public function replace(Book $book, UploadedFile $pdf, User $uploader): DigitalBookAsset
     {
         $uuid = (string) Str::uuid();
@@ -110,6 +116,56 @@ class DigitalBookService
         return false;
     }
 
+    public function repairStorage(DigitalBookAsset $asset): array
+    {
+        $targetDiskName = $this->diskName();
+
+        foreach ($this->repairCandidateDiskNames($asset) as $sourceDiskName) {
+            $stream = $this->readStreamFromDisk($asset, $sourceDiskName);
+
+            if (! is_resource($stream)) {
+                continue;
+            }
+
+            if ($sourceDiskName === $targetDiskName) {
+                fclose($stream);
+                $this->recordStorageDisk($asset, $targetDiskName);
+
+                return [
+                    'status' => self::REPAIR_AVAILABLE,
+                    'source_disk' => $sourceDiskName,
+                    'target_disk' => $targetDiskName,
+                ];
+            }
+
+            try {
+                $stored = Storage::disk($targetDiskName)->put($asset->original_path, $stream);
+            } finally {
+                fclose($stream);
+            }
+
+            if (! $stored) {
+                throw new RuntimeException(
+                    "Gagal menyalin PDF ke disk {$targetDiskName}."
+                );
+            }
+
+            $this->recordStorageDisk($asset, $targetDiskName);
+
+            return [
+                'status' => self::REPAIR_COPIED,
+                'source_disk' => $sourceDiskName,
+                'target_disk' => $targetDiskName,
+            ];
+        }
+
+        return [
+            'status' => self::REPAIR_MISSING,
+            'source_disk' => null,
+            'target_disk' => $targetDiskName,
+        ];
+    }
+
     private function diskName(): string
     {
         return (string) config('services.digital_reader.storage_disk', config('filesystems.default', 'local'));
@@ -125,6 +181,36 @@ class DigitalBookService
             $this->diskName(),
             'local',
         ]));
+    }
+
+    private function repairCandidateDiskNames(DigitalBookAsset $asset): array
+    {
+        return array_values(array_unique(array_filter([
+            $this->diskName(),
+            $asset->storage_disk,
+            'local',
+        ])));
+    }
+
+    private function readStreamFromDisk(DigitalBookAsset $asset, string $diskName): mixed
+    {
+        try {
+            return Storage::disk($diskName)->readStream($asset->original_path);
+        } catch (Throwable $exception) {
+            Log::warning('Digital book file could not be inspected during storage repair.', [
+                'digital_book_asset_id' => $asset->id,
+                'disk' => $diskName,
+                'path' => $asset->original_path,
+                'exception' => $exception::class,
+            ]);
+
+            return false;
+        }
+    }
+
+    private function recordStorageDisk(DigitalBookAsset $asset, string $diskName): void
+    {
+        $asset->forceFill(['storage_disk' => $diskName])->save();
     }
 
     private function deleteAssetFiles(DigitalBookAsset $asset, ?string $directory = null): void
