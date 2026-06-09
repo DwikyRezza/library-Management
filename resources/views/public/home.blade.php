@@ -50,6 +50,7 @@
                     @endif
                     <p class="mt-3 line-clamp-2 text-sm font-bold text-slate-900 dark:text-white">{{ $book->title }}</p>
                     <p class="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{{ $book->category->name }}</p>
+                    <x-book-reader-action :book="$book" compact />
                 </article>
             @empty
                 <div class="col-span-2 rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
@@ -90,11 +91,7 @@
                             <h3 class="mt-3 line-clamp-2 font-bold text-slate-950 dark:text-white">{{ $book->title }}</h3>
                             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ $book->author }}</p>
                             <p class="mt-3 text-xs font-semibold text-blue-700 dark:text-blue-300">{{ $book->category->name }}</p>
-                            @auth('member')
-                                @if ($book->digitalAsset?->isReady())
-                                    <a href="{{ route('member.reader.open', $book) }}" class="mt-3 inline-flex text-sm font-bold text-emerald-700 dark:text-emerald-200">Read</a>
-                                @endif
-                            @endauth
+                            <x-book-reader-action :book="$book" compact />
                         </div>
                     </div>
                 </article>

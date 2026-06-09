@@ -48,11 +48,7 @@
                                 <span class="text-xs font-bold text-blue-700 dark:text-blue-300">{{ $book->category->name }}</span>
                                 <span class="text-xs text-slate-400">{{ $book->publication_year ?: 'Year n/a' }}</span>
                             </div>
-                            @auth('member')
-                                @if ($book->digitalAsset?->isReady())
-                                    <a href="{{ route('member.reader.open', $book) }}" class="btn-primary mt-4 w-full">Read</a>
-                                @endif
-                            @endauth
+                            <x-book-reader-action :book="$book" />
                         </div>
                     </div>
                 </article>

@@ -209,16 +209,21 @@ class DigitalReaderTest extends TestCase
         $response->assertOk();
         $response->assertSee(route('member.reader.open', $readyBook), false);
         $response->assertDontSee(route('member.reader.open', $processingBook), false);
+        $response->assertSee('Sedang diproses');
     }
 
-    public function test_catalog_does_not_offer_online_reading_for_guests(): void
+    public function test_catalog_offers_reading_to_guests_and_redirects_them_to_member_login(): void
     {
         [$readyBook] = $this->createReadyBook();
 
         $response = $this->get('/books/search');
 
         $response->assertOk();
-        $response->assertDontSee(route('member.reader.open', $readyBook), false);
+        $response->assertSee(route('member.reader.open', $readyBook), false);
+        $response->assertSee('Read');
+
+        $this->get(route('member.reader.open', $readyBook))
+            ->assertRedirect(route('member.login'));
     }
 
     private function createReadyBook(): array
