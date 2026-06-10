@@ -4,10 +4,17 @@ import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 
-const pdfJsWasmDirectory = path.resolve('node_modules/pdfjs-dist/wasm');
-const pdfJsWasmFiles = readdirSync(pdfJsWasmDirectory, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name);
+const pdfJsAssetGroups = ['wasm', 'cmaps', 'standard_fonts'].map((directory) => {
+    const sourceDirectory = path.resolve(`node_modules/pdfjs-dist/${directory}`);
+
+    return {
+        directory,
+        sourceDirectory,
+        files: readdirSync(sourceDirectory, { withFileTypes: true })
+            .filter((entry) => entry.isFile())
+            .map((entry) => entry.name),
+    };
+});
 
 const pdfJsContentType = (filename) => {
     if (filename.endsWith('.wasm')) {
@@ -18,37 +25,52 @@ const pdfJsContentType = (filename) => {
         return 'text/javascript; charset=utf-8';
     }
 
-    return 'text/plain; charset=utf-8';
+    if (filename.endsWith('.ttf')) {
+        return 'font/ttf';
+    }
+
+    return 'application/octet-stream';
 };
 
 export function pdfJsWasmAssets() {
-    const serveWasmAsset = (request, response, next) => {
-        const filename = path.posix.basename(
-            new URL(request.url || '/', 'http://localhost').pathname,
-        );
+    const serveAsset = (assetGroup) => (request, response, next) => {
+        const filename = path.posix.basename(new URL(
+            request.url || '/',
+            'http://localhost',
+        ).pathname);
 
-        if (!pdfJsWasmFiles.includes(filename)) {
+        if (!assetGroup.files.includes(filename)) {
             next();
 
             return;
         }
 
         response.setHeader('Content-Type', pdfJsContentType(filename));
-        createReadStream(path.join(pdfJsWasmDirectory, filename)).pipe(response);
+        createReadStream(path.join(assetGroup.sourceDirectory, filename)).pipe(response);
     };
 
     return {
         name: 'pdfjs-wasm-assets',
         configureServer(server) {
-            server.middlewares.use('/pdfjs/wasm/', serveWasmAsset);
+            for (const assetGroup of pdfJsAssetGroups) {
+                server.middlewares.use(
+                    `/pdfjs/${assetGroup.directory}/`,
+                    serveAsset(assetGroup),
+                );
+            }
         },
         generateBundle() {
-            for (const filename of pdfJsWasmFiles) {
-                this.emitFile({
-                    type: 'asset',
-                    fileName: `pdfjs/wasm/${filename}`,
-                    source: readFileSync(path.join(pdfJsWasmDirectory, filename)),
-                });
+            for (const assetGroup of pdfJsAssetGroups) {
+                for (const filename of assetGroup.files) {
+                    this.emitFile({
+                        type: 'asset',
+                        fileName: `pdfjs/${assetGroup.directory}/${filename}`,
+                        source: readFileSync(path.join(
+                            assetGroup.sourceDirectory,
+                            filename,
+                        )),
+                    });
+                }
             }
         },
     };

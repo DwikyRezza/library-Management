@@ -106,7 +106,7 @@ class DigitalReaderTest extends TestCase
         $this->createActiveLoan($member, $book);
         $session = $this->createReadingSession($member, $book, $asset);
 
-        $this->actingAs($member, 'member')
+        $response = $this->actingAs($member, 'member')
             ->get(route('member.reader.show', $session))
             ->assertOk()
             ->assertSee($book->title)
@@ -120,6 +120,17 @@ class DigitalReaderTest extends TestCase
             ->assertSee('/document', false)
             ->assertSee('Dokumen gagal dimuat')
             ->assertDontSee('watermark');
+
+        $response->assertSee('window.libraFlowPdfConfig', false)
+            ->assertSee('pdfjs-dist@6.0.227/wasm/', false)
+            ->assertSee('pdfjs-dist@6.0.227/cmaps/', false)
+            ->assertSee('pdfjs-dist@6.0.227/standard_fonts/', false);
+
+        $html = $response->getContent();
+        $this->assertLessThan(
+            strpos($html, '<script type="module"'),
+            strpos($html, 'window.libraFlowPdfConfig'),
+        );
     }
 
     public function test_digital_loan_stores_highlights_with_serialized_ranges(): void

@@ -1,11 +1,16 @@
 import '../css/reader.css';
-import { getDocument, GlobalWorkerOptions, TextLayer } from 'pdfjs-dist';
+import {
+    getDocument,
+    GlobalWorkerOptions,
+    TextLayer,
+    version as pdfjsVersion,
+} from 'pdfjs-dist';
 import {
     buildRenderPriority,
     calculateAdjacentWindow,
     calculateInitialWindow,
     pagesOutsideCache,
-    resolvePdfWasmUrl,
+    resolvePdfAssetUrls,
 } from './reader-core.js';
 
 if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerPort) {
@@ -19,7 +24,12 @@ const reader = document.querySelector('[data-pdf-reader]');
 
 if (reader) {
     const MAX_CONCURRENT_RENDERS = 2;
-    const pdfWasmUrl = resolvePdfWasmUrl(import.meta.url, import.meta.env.DEV);
+    const pdfAssetUrls = resolvePdfAssetUrls(
+        import.meta.url,
+        import.meta.env.DEV,
+        window.libraFlowPdfConfig,
+        pdfjsVersion,
+    );
     const stage = document.getElementById('readerStage');
     const pagesContainer = document.getElementById('readerPages');
     const pageTemplate = document.getElementById('readerPageTemplate');
@@ -945,7 +955,8 @@ if (reader) {
             loadingTask = getDocument({
                 url: reader.dataset.documentUrl,
                 withCredentials: true,
-                wasmUrl: pdfWasmUrl,
+                ...pdfAssetUrls,
+                cMapPacked: true,
             });
             pdfDocument = await loadingTask.promise;
             totalPages = pdfDocument.numPages;

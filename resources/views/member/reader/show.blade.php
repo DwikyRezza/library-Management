@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $book->title }} - LibraFlow Reader</title>
+    <script>
+        window.libraFlowPdfConfig = Object.freeze({
+            version: '6.0.227',
+            wasmUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.0.227/wasm/',
+            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.0.227/cmaps/',
+            standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.0.227/standard_fonts/',
+        });
+    </script>
     @vite(['resources/css/app.css', 'resources/js/reader.js'])
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-950">

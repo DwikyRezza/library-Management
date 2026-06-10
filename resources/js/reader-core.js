@@ -12,6 +12,38 @@ export function resolvePdfWasmUrl(moduleUrl, isDevelopment) {
     ).href;
 }
 
+export function resolvePdfAssetUrls(
+    moduleUrl,
+    isDevelopment,
+    configuredAssets,
+    expectedVersion,
+) {
+    const localAssetUrl = (directory) => new URL(
+        isDevelopment ? `/pdfjs/${directory}/` : `../pdfjs/${directory}/`,
+        moduleUrl,
+    ).href;
+    const hasMatchingConfiguration = configuredAssets
+        && configuredAssets.version === expectedVersion
+        && ['wasmUrl', 'cMapUrl', 'standardFontDataUrl'].every(
+            (key) => typeof configuredAssets[key] === 'string'
+                && configuredAssets[key].endsWith('/'),
+        );
+
+    if (hasMatchingConfiguration) {
+        return {
+            wasmUrl: configuredAssets.wasmUrl,
+            cMapUrl: configuredAssets.cMapUrl,
+            standardFontDataUrl: configuredAssets.standardFontDataUrl,
+        };
+    }
+
+    return {
+        wasmUrl: resolvePdfWasmUrl(moduleUrl, isDevelopment),
+        cMapUrl: localAssetUrl('cmaps'),
+        standardFontDataUrl: localAssetUrl('standard_fonts'),
+    };
+}
+
 export function calculateInitialWindow(page, totalPages) {
     const safeTotal = Math.max(Number.parseInt(totalPages, 10) || 1, 1);
     const targetPage = clampPage(page, safeTotal);

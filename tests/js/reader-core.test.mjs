@@ -6,6 +6,7 @@ import {
     calculateAdjacentWindow,
     calculateInitialWindow,
     pagesOutsideCache,
+    resolvePdfAssetUrls,
     resolvePdfWasmUrl,
 } from '../../resources/js/reader-core.js';
 import viteConfig from '../../vite.config.js';
@@ -78,6 +79,48 @@ test('PDF.js decoder URL resolves from the Vite development origin', () => {
     );
 });
 
+test('matching global PDF.js configuration uses the pinned CDN assets', () => {
+    assert.deepEqual(
+        resolvePdfAssetUrls(
+            'https://library.example/build/assets/reader-abc123.js',
+            false,
+            {
+                version: '6.0.227',
+                wasmUrl: 'https://cdn.example/pdfjs/wasm/',
+                cMapUrl: 'https://cdn.example/pdfjs/cmaps/',
+                standardFontDataUrl: 'https://cdn.example/pdfjs/standard_fonts/',
+            },
+            '6.0.227',
+        ),
+        {
+            wasmUrl: 'https://cdn.example/pdfjs/wasm/',
+            cMapUrl: 'https://cdn.example/pdfjs/cmaps/',
+            standardFontDataUrl: 'https://cdn.example/pdfjs/standard_fonts/',
+        },
+    );
+});
+
+test('mismatched global PDF.js version falls back to local build assets', () => {
+    assert.deepEqual(
+        resolvePdfAssetUrls(
+            'https://library.example/build/assets/reader-abc123.js',
+            false,
+            {
+                version: '4.0.359',
+                wasmUrl: 'https://cdn.example/pdfjs/wasm/',
+                cMapUrl: 'https://cdn.example/pdfjs/cmaps/',
+                standardFontDataUrl: 'https://cdn.example/pdfjs/standard_fonts/',
+            },
+            '6.0.227',
+        ),
+        {
+            wasmUrl: 'https://library.example/build/pdfjs/wasm/',
+            cMapUrl: 'https://library.example/build/pdfjs/cmaps/',
+            standardFontDataUrl: 'https://library.example/build/pdfjs/standard_fonts/',
+        },
+    );
+});
+
 test('Vite emits the PDF.js decoder runtime files', () => {
     const plugin = viteConfig.plugins.find(({ name }) => name === 'pdfjs-wasm-assets');
 
@@ -95,4 +138,6 @@ test('Vite emits the PDF.js decoder runtime files', () => {
     assert.ok(emittedFiles.includes('pdfjs/wasm/jbig2_nowasm_fallback.js'));
     assert.ok(emittedFiles.includes('pdfjs/wasm/openjpeg.wasm'));
     assert.ok(emittedFiles.includes('pdfjs/wasm/qcms_bg.wasm'));
+    assert.ok(emittedFiles.includes('pdfjs/cmaps/78-H.bcmap'));
+    assert.ok(emittedFiles.includes('pdfjs/standard_fonts/FoxitSerif.pfb'));
 });
