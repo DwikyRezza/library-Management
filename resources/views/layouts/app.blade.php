@@ -22,7 +22,7 @@
     <header class="pub-header sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="flex items-center gap-3">
-                <span class="grid size-10 place-items-center rounded-lg bg-blue-600 font-black text-white shadow-sm">L</span>
+                <img src="{{ asset('images/logo-libraflow.png') }}" alt="LibraFlow" class="size-10 rounded-lg object-contain">
                 <span>
                     <span class="block text-lg font-black text-slate-950 dark:text-slate-100">LibraFlow</span>
                     <span class="block text-xs text-slate-500 dark:text-slate-400">Modern Library System</span>

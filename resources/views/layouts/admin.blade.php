@@ -25,7 +25,7 @@
            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
         <div class="flex h-20 items-center justify-between border-b border-slate-200/80 px-6 dark:border-white/10">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-                <span class="grid size-10 place-items-center rounded-lg bg-blue-600 font-black text-white shadow-sm">L</span>
+                <img src="{{ asset('images/logo-libraflow.png') }}" alt="LibraFlow" class="size-10 rounded-lg object-contain">
                 <span>
                     <strong class="block text-lg">LibraFlow</strong>
                     <small class="text-slate-500 dark:text-slate-400">Staff workspace</small>
