@@ -12,6 +12,7 @@ use App\Http\Controllers\MemberAuthController;
 use App\Http\Controllers\MemberBooklistController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberDigitalLoanController;
+use App\Http\Controllers\MemberReaderAnnotationController;
 use App\Http\Controllers\MemberReaderController;
 use App\Http\Controllers\MemberReaderHighlightController;
 use App\Http\Controllers\MemberRegistrationController;
@@ -75,6 +76,12 @@ Route::middleware('auth:member')->group(function (): void {
         Route::post('/reader/{readingSession}/finish', [MemberReaderController::class, 'finish'])
             ->middleware('throttle:30,1')
             ->name('member.reader.finish');
+        Route::get('/reader/{readingSession}/annotations', [MemberReaderAnnotationController::class, 'index'])
+            ->middleware('throttle:60,1')
+            ->name('member.reader.annotations.index');
+        Route::post('/reader/{readingSession}/annotations', [MemberReaderAnnotationController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('member.reader.annotations.store');
         Route::post('/member/reader/highlight', [MemberReaderHighlightController::class, 'store'])
             ->middleware('throttle:60,1')
             ->name('member.reader.highlights.store');

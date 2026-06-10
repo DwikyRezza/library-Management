@@ -12,6 +12,7 @@ use App\Models\ReadingSession;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -115,8 +116,28 @@ class DigitalReaderTest extends TestCase
             ->assertSee('readerRenderStatus')
             ->assertSee('reader-page-skeleton')
             ->assertSee('Memuat halaman')
+            ->assertSee('readerSidebar')
+            ->assertSee('readerThumbnailList')
+            ->assertSee('readerToggleSidebar')
+            ->assertSee('data-annotation-tool="highlighter"', false)
+            ->assertSee('data-annotation-tool="pen"', false)
+            ->assertSee('data-annotation-tool="eraser"', false)
+            ->assertSee('data-annotation-tool="text"', false)
+            ->assertSee('readerAnnotationColor')
+            ->assertSee('readerBrushSize')
+            ->assertSee('readerUndo')
+            ->assertSee('readerRedo')
+            ->assertSee('readerSearchInput')
+            ->assertSee('readerPrint')
+            ->assertSee('readerDownload')
+            ->assertSee('readerFullscreen')
+            ->assertSee('readerFloatingControls')
+            ->assertSee('reader-annotation-layer')
+            ->assertSee('readerTextNoteDialog')
             ->assertSee('readerHighlightPopover')
             ->assertSee(route('member.reader.highlights.store'), false)
+            ->assertSee(route('member.reader.annotations.index', $session), false)
+            ->assertSee(route('member.reader.annotations.store', $session), false)
             ->assertSee('/document', false)
             ->assertSee('Dokumen gagal dimuat')
             ->assertDontSee('watermark');
@@ -326,6 +347,125 @@ class DigitalReaderTest extends TestCase
         $this->assertDatabaseHas('book_highlights', ['id' => $highlight->id]);
     }
 
+    public function test_member_can_upsert_and_list_page_annotations_for_an_active_reader_session(): void
+    {
+        $member = Member::factory()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
+        $session = $this->createReadingSession($member, $book, $asset);
+        $firstData = $this->annotationData([
+            [
+                'id' => 'stroke-one',
+                'type' => 'pen',
+                'color' => '#7c3aed',
+                'brush_size' => 0.01,
+                'points' => [
+                    ['x' => 0.1, 'y' => 0.2],
+                    ['x' => 0.4, 'y' => 0.5],
+                ],
+            ],
+        ]);
+
+        $this->actingAs($member, 'member')
+            ->postJson(route('member.reader.annotations.store', $session), [
+                'page_number' => 2,
+                'data' => $firstData,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.page_number', 2)
+            ->assertJsonPath('data.data.annotations.0.id', 'stroke-one');
+
+        $replacementData = $this->annotationData([
+            [
+                'id' => 'note-one',
+                'type' => 'text',
+                'color' => '#2563eb',
+                'brush_size' => 0.02,
+                'points' => [['x' => 0.6, 'y' => 0.4]],
+                'content' => 'Periksa bagian ini.',
+            ],
+        ]);
+
+        $this->actingAs($member, 'member')
+            ->postJson(route('member.reader.annotations.store', $session), [
+                'page_number' => 2,
+                'data' => $replacementData,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.data.annotations.0.id', 'note-one');
+
+        $this->assertSame(1, DB::table('book_annotations')->count());
+        $storedData = json_decode(
+            DB::table('book_annotations')->value('data'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        $this->assertSame($replacementData, $storedData);
+
+        $this->actingAs($member, 'member')
+            ->getJson(route('member.reader.annotations.index', [
+                'readingSession' => $session,
+                'start' => 1,
+                'end' => 10,
+            ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.page_number', 2)
+            ->assertJsonPath('data.0.data.annotations.0.content', 'Periksa bagian ini.');
+    }
+
+    public function test_member_cannot_access_annotations_for_another_members_reader_session(): void
+    {
+        $owner = Member::factory()->create();
+        $otherMember = Member::factory()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($owner, $book);
+        $session = $this->createReadingSession($owner, $book, $asset);
+
+        $this->actingAs($otherMember, 'member')
+            ->getJson(route('member.reader.annotations.index', $session))
+            ->assertNotFound();
+
+        $this->actingAs($otherMember, 'member')
+            ->postJson(route('member.reader.annotations.store', $session), [
+                'page_number' => 1,
+                'data' => $this->annotationData([]),
+            ])
+            ->assertNotFound();
+    }
+
+    public function test_annotation_payload_rejects_coordinates_outside_the_page(): void
+    {
+        $member = Member::factory()->create();
+        [$book, $asset] = $this->createReadyBook();
+        $this->createActiveLoan($member, $book);
+        $session = $this->createReadingSession($member, $book, $asset);
+
+        $this->actingAs($member, 'member')
+            ->postJson(route('member.reader.annotations.store', $session), [
+                'page_number' => 1,
+                'data' => $this->annotationData([
+                    [
+                        'id' => 'invalid-stroke',
+                        'type' => 'highlighter',
+                        'color' => '#facc15',
+                        'brush_size' => 0.03,
+                        'points' => [
+                            ['x' => 1.2, 'y' => -0.1],
+                            ['x' => 0.5, 'y' => 0.5],
+                        ],
+                    ],
+                ]),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'data.annotations.0.points.0.x',
+                'data.annotations.0.points.0.y',
+            ]);
+
+        $this->assertDatabaseCount('book_annotations', 0);
+    }
+
     public function test_heartbeat_records_the_page_count_reported_by_pdfjs(): void
     {
         $member = Member::factory()->create();
@@ -503,6 +643,14 @@ PDF;
                     'height' => 0.04,
                 ],
             ],
+        ];
+    }
+
+    private function annotationData(array $annotations): array
+    {
+        return [
+            'version' => 1,
+            'annotations' => $annotations,
         ];
     }
 }

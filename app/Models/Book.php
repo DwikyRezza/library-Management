@@ -70,6 +70,11 @@ class Book extends Model
         return $this->hasMany(ReadingSession::class);
     }
 
+    public function annotations(): HasMany
+    {
+        return $this->hasMany(BookAnnotation::class);
+    }
+
     public function digitalLoans(): HasMany
     {
         return $this->hasMany(DigitalLoan::class);

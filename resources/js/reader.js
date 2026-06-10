@@ -6,11 +6,18 @@ import {
     version as pdfjsVersion,
 } from 'pdfjs-dist';
 import {
+    commitAnnotationHistory,
+    createAnnotationHistory,
+    eraseAnnotationsAtPoint,
     buildRenderPriority,
     calculateAdjacentWindow,
     calculateInitialWindow,
+    normalizeAnnotationPoint,
     pagesOutsideCache,
+    redoAnnotationHistory,
     resolvePdfAssetUrls,
+    resolveNavigationWindow,
+    undoAnnotationHistory,
 } from './reader-core.js';
 
 if (typeof window !== 'undefined' && !GlobalWorkerOptions.workerPort) {
@@ -47,6 +54,25 @@ if (reader) {
     const pageLabel = document.getElementById('readerPage');
     const totalLabel = document.getElementById('readerTotal');
     const saveStatus = document.getElementById('readerSaveStatus');
+    const thumbnailList = document.getElementById('readerThumbnailList');
+    const sidebarCount = document.getElementById('readerSidebarCount');
+    const toggleSidebarButton = document.getElementById('readerToggleSidebar');
+    const closeSidebarButton = document.getElementById('readerCloseSidebar');
+    const sidebarBackdrop = document.getElementById('readerSidebarBackdrop');
+    const toolButtons = [...document.querySelectorAll('[data-annotation-tool]')];
+    const annotationColorInput = document.getElementById('readerAnnotationColor');
+    const brushSizeInput = document.getElementById('readerBrushSize');
+    const undoButton = document.getElementById('readerUndo');
+    const redoButton = document.getElementById('readerRedo');
+    const floatingZoomOutButton = document.getElementById('readerFloatingZoomOut');
+    const floatingZoomInButton = document.getElementById('readerFloatingZoomIn');
+    const fullscreenButton = document.getElementById('readerFullscreen');
+    const searchForm = document.getElementById('readerSearchForm');
+    const searchInput = document.getElementById('readerSearchInput');
+    const printButton = document.getElementById('readerPrint');
+    const textNoteDialog = document.getElementById('readerTextNoteDialog');
+    const textNoteContent = document.getElementById('readerTextNoteContent');
+    const saveTextNoteButton = document.getElementById('readerSaveTextNote');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     let loadingTask = null;
@@ -58,18 +84,28 @@ if (reader) {
     let activeWindow = { start: 1, end: 1 };
     let pageStates = new Map();
     let observer = null;
+    let thumbnailObserver = null;
     let renderQueue = [];
     let runningRenders = 0;
     let navigating = false;
+    let searching = false;
     let resizeTimer = null;
     let zoomTimer = null;
     let heartbeatTimer = null;
     let statusTimer = null;
     let preloadTimer = null;
     let pendingHighlight = null;
+    let pendingTextNote = null;
+    let activeTool = null;
+    let activeAnnotationGesture = null;
     let highlights = [];
     const activeRenderPages = new Set();
     const metadataCache = new Map();
+    const thumbnailStates = new Map();
+    const annotationsByPage = new Map();
+    const annotationHistories = new Map();
+    const loadedAnnotationPages = new Set();
+    const annotationSaveTimers = new Map();
 
     try {
         highlights = JSON.parse(highlightsData?.textContent || '[]');
@@ -98,21 +134,35 @@ if (reader) {
     const setSaveStatus = (message, failed = false) => {
         window.clearTimeout(statusTimer);
         saveStatus.textContent = message;
-        saveStatus.classList.toggle('text-rose-300', failed);
-        saveStatus.classList.toggle('text-slate-400', !failed);
+        saveStatus.classList.toggle('is-error', failed);
         statusTimer = window.setTimeout(() => {
             saveStatus.textContent = '';
+            saveStatus.classList.remove('is-error');
         }, 2200);
     };
 
     const updateControls = () => {
+        const annotationHistory = annotationHistories.get(currentPage);
+
         pageLabel.textContent = String(currentPage);
         totalLabel.textContent = totalPages > 0 ? String(totalPages) : '-';
         zoomLabel.textContent = `${zoom}%`;
-        previousButton.disabled = navigating || activeWindow.start <= 1;
-        nextButton.disabled = navigating || totalPages === 0 || activeWindow.end >= totalPages;
+        previousButton.disabled = navigating || currentPage <= 1;
+        nextButton.disabled = navigating || totalPages === 0 || currentPage >= totalPages;
         zoomOutButton.disabled = navigating || zoom <= 60;
         zoomInButton.disabled = navigating || zoom >= 180;
+        floatingZoomOutButton.disabled = navigating || zoom <= 60;
+        floatingZoomInButton.disabled = navigating || zoom >= 180;
+        undoButton.disabled = !annotationHistory?.canUndo;
+        redoButton.disabled = !annotationHistory?.canRedo;
+
+        thumbnailStates.forEach((thumbnail, pageNumber) => {
+            thumbnail.button.classList.toggle('is-active', pageNumber === currentPage);
+            thumbnail.button.setAttribute(
+                'aria-current',
+                pageNumber === currentPage ? 'page' : 'false',
+            );
+        });
     };
 
     const updateRenderStatus = () => {
@@ -129,7 +179,9 @@ if (reader) {
             return;
         }
 
-        renderStatus.textContent = `Merender halaman ${renderingPage} dari ${totalPages}...`;
+        const windowSize = activeWindow.end - activeWindow.start + 1;
+        const windowPosition = renderingPage - activeWindow.start + 1;
+        renderStatus.textContent = `Memuat halaman ${windowPosition} dari ${windowSize}...`;
         renderStatus.classList.remove('hidden');
     };
 
@@ -374,7 +426,379 @@ if (reader) {
         return pageStates.get(pageNumber) || null;
     };
 
+    const annotationId = () => (
+        window.crypto?.randomUUID?.()
+        || `annotation-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    );
+
+    const pageAnnotations = (pageNumber) => {
+        if (!annotationsByPage.has(pageNumber)) {
+            annotationsByPage.set(pageNumber, []);
+        }
+
+        return annotationsByPage.get(pageNumber);
+    };
+
+    const ensureAnnotationHistory = (pageNumber) => {
+        if (!annotationHistories.has(pageNumber)) {
+            annotationHistories.set(
+                pageNumber,
+                createAnnotationHistory(pageAnnotations(pageNumber)),
+            );
+        }
+
+        return annotationHistories.get(pageNumber);
+    };
+
+    const drawAnnotation = (context, annotation, width, height) => {
+        const points = Array.isArray(annotation.points) ? annotation.points : [];
+
+        if (points.length === 0) {
+            return;
+        }
+
+        const pixelPoints = points.map((point) => ({
+            x: Number(point.x) * width,
+            y: Number(point.y) * height,
+        }));
+        const lineWidth = Math.max(1, Number(annotation.brush_size) * width);
+
+        context.save();
+        context.strokeStyle = annotation.color;
+        context.fillStyle = annotation.color;
+        context.lineWidth = lineWidth;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+
+        if (annotation.type === 'highlighter') {
+            context.globalAlpha = 0.28;
+            context.globalCompositeOperation = 'multiply';
+        }
+
+        if (annotation.type === 'text') {
+            const anchor = pixelPoints[0];
+            const fontSize = Math.max(12, lineWidth * 4);
+            const content = String(annotation.content || '').trim();
+            const padding = 6;
+
+            context.globalAlpha = 0.92;
+            context.font = `600 ${fontSize}px system-ui, sans-serif`;
+            context.textBaseline = 'top';
+            const textWidth = Math.min(
+                context.measureText(content).width,
+                Math.max(80, width - anchor.x - (padding * 2)),
+            );
+            context.fillStyle = 'rgba(15, 23, 42, 0.88)';
+            context.fillRect(
+                anchor.x - padding,
+                anchor.y - padding,
+                textWidth + (padding * 2),
+                fontSize + (padding * 2),
+            );
+            context.fillStyle = annotation.color;
+            context.fillText(
+                content,
+                anchor.x,
+                anchor.y,
+                Math.max(80, width - anchor.x - padding),
+            );
+            context.restore();
+
+            return;
+        }
+
+        context.beginPath();
+        context.moveTo(pixelPoints[0].x, pixelPoints[0].y);
+
+        if (pixelPoints.length === 1) {
+            context.lineTo(pixelPoints[0].x + 0.01, pixelPoints[0].y + 0.01);
+        } else {
+            pixelPoints.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+        }
+
+        context.stroke();
+        context.restore();
+    };
+
+    const resizeAndRedrawAnnotations = (state, draft = null) => {
+        if (!state?.annotationCanvas || state.width <= 0 || state.height <= 0) {
+            return;
+        }
+
+        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+        const context = state.annotationCanvas.getContext('2d');
+        state.annotationCanvas.width = Math.max(1, Math.floor(state.width * outputScale));
+        state.annotationCanvas.height = Math.max(1, Math.floor(state.height * outputScale));
+        state.annotationCanvas.style.width = `${state.width}px`;
+        state.annotationCanvas.style.height = `${state.height}px`;
+        context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+        context.clearRect(0, 0, state.width, state.height);
+
+        pageAnnotations(state.pageNumber).forEach((annotation) => {
+            drawAnnotation(context, annotation, state.width, state.height);
+        });
+
+        if (draft) {
+            drawAnnotation(context, draft, state.width, state.height);
+        }
+    };
+
+    const saveAnnotationPage = async (pageNumber, keepalive = false) => {
+        try {
+            const response = await fetch(reader.dataset.annotationStoreUrl, {
+                method: 'POST',
+                keepalive,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    page_number: pageNumber,
+                    data: {
+                        version: 1,
+                        annotations: pageAnnotations(pageNumber),
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Annotations could not be saved.');
+            }
+
+            setSaveStatus('Anotasi tersimpan');
+        } catch {
+            setSaveStatus('Anotasi gagal disimpan', true);
+        }
+    };
+
+    const scheduleAnnotationSave = (pageNumber) => {
+        window.clearTimeout(annotationSaveTimers.get(pageNumber));
+        setSaveStatus('Menyimpan anotasi...');
+        const timer = window.setTimeout(() => {
+            annotationSaveTimers.delete(pageNumber);
+            saveAnnotationPage(pageNumber);
+        }, 800);
+        annotationSaveTimers.set(pageNumber, timer);
+    };
+
+    const loadAnnotations = async (range) => {
+        const rangeAlreadyLoaded = Array.from(
+            { length: range.end - range.start + 1 },
+            (_, index) => range.start + index,
+        ).every((pageNumber) => loadedAnnotationPages.has(pageNumber));
+
+        if (rangeAlreadyLoaded) {
+            pageStates.forEach((state) => resizeAndRedrawAnnotations(state));
+            updateControls();
+
+            return;
+        }
+
+        const url = new URL(reader.dataset.annotationIndexUrl, window.location.href);
+        url.searchParams.set('start', String(range.start));
+        url.searchParams.set('end', String(range.end));
+        const response = await fetch(url, {
+            headers: {
+                Accept: 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Annotations could not be loaded.');
+        }
+
+        const payload = await response.json();
+        const rows = Array.isArray(payload.data) ? payload.data : [];
+        const rowsByPage = new Map(rows.map((row) => [Number(row.page_number), row]));
+
+        for (let pageNumber = range.start; pageNumber <= range.end; pageNumber += 1) {
+            if (!annotationSaveTimers.has(pageNumber)) {
+                const annotations = rowsByPage.get(pageNumber)?.data?.annotations;
+                annotationsByPage.set(pageNumber, Array.isArray(annotations) ? annotations : []);
+                annotationHistories.set(
+                    pageNumber,
+                    createAnnotationHistory(pageAnnotations(pageNumber)),
+                );
+            }
+
+            loadedAnnotationPages.add(pageNumber);
+            resizeAndRedrawAnnotations(pageStates.get(pageNumber));
+        }
+
+        updateControls();
+    };
+
+    const commitPageAnnotations = (pageNumber, annotations) => {
+        const history = commitAnnotationHistory(
+            ensureAnnotationHistory(pageNumber),
+            annotations,
+        );
+        annotationHistories.set(pageNumber, history);
+        annotationsByPage.set(pageNumber, history.current);
+        resizeAndRedrawAnnotations(pageStates.get(pageNumber));
+        scheduleAnnotationSave(pageNumber);
+        updateControls();
+    };
+
+    const setActiveTool = (tool) => {
+        activeTool = activeTool === tool ? null : tool;
+        reader.classList.toggle('has-active-tool', Boolean(activeTool));
+
+        if (activeTool) {
+            reader.dataset.activeTool = activeTool;
+            hideHighlightPopover();
+            window.getSelection()?.removeAllRanges();
+        } else {
+            delete reader.dataset.activeTool;
+        }
+
+        toolButtons.forEach((button) => {
+            const isActive = button.dataset.annotationTool === activeTool;
+            button.classList.toggle('is-active', isActive);
+            button.setAttribute('aria-pressed', String(isActive));
+        });
+    };
+
+    const startAnnotationGesture = (event) => {
+        if (!activeTool || !event.target.matches('[data-page-annotation-layer]')) {
+            return;
+        }
+
+        const state = stateFromTarget(event.target);
+
+        if (!state || state.status !== 'ready' || !loadedAnnotationPages.has(state.pageNumber)) {
+            if (state?.status === 'ready') {
+                setSaveStatus('Anotasi masih dimuat', true);
+            }
+
+            return;
+        }
+
+        event.preventDefault();
+        event.target.setPointerCapture?.(event.pointerId);
+        const point = normalizeAnnotationPoint(
+            event,
+            state.annotationCanvas.getBoundingClientRect(),
+        );
+
+        if (activeTool !== 'eraser' && pageAnnotations(state.pageNumber).length >= 500) {
+            setSaveStatus('Batas anotasi halaman tercapai', true);
+
+            return;
+        }
+
+        if (activeTool === 'text') {
+            pendingTextNote = { pageNumber: state.pageNumber, point };
+            textNoteContent.value = '';
+            textNoteDialog.showModal();
+            textNoteContent.focus();
+
+            return;
+        }
+
+        if (activeTool === 'eraser') {
+            const result = eraseAnnotationsAtPoint(pageAnnotations(state.pageNumber), point, 0.025);
+            activeAnnotationGesture = {
+                type: 'eraser',
+                pageNumber: state.pageNumber,
+                changed: result.removedIds.length > 0,
+            };
+            annotationsByPage.set(state.pageNumber, result.annotations);
+            resizeAndRedrawAnnotations(state);
+
+            return;
+        }
+
+        const brushPixels = Math.max(1, Number(brushSizeInput.value) || 4);
+        const annotation = {
+            id: annotationId(),
+            type: activeTool,
+            color: annotationColorInput.value,
+            brush_size: Number(Math.min(0.2, brushPixels / state.width).toFixed(6)),
+            points: [point],
+        };
+        activeAnnotationGesture = {
+            type: activeTool,
+            pageNumber: state.pageNumber,
+            annotation,
+        };
+        resizeAndRedrawAnnotations(state, annotation);
+    };
+
+    const continueAnnotationGesture = (event) => {
+        if (!activeAnnotationGesture || !event.target.matches('[data-page-annotation-layer]')) {
+            return;
+        }
+
+        const state = pageStates.get(activeAnnotationGesture.pageNumber);
+
+        if (!state) {
+            return;
+        }
+
+        event.preventDefault();
+        const point = normalizeAnnotationPoint(
+            event,
+            state.annotationCanvas.getBoundingClientRect(),
+        );
+
+        if (activeAnnotationGesture.type === 'eraser') {
+            const result = eraseAnnotationsAtPoint(pageAnnotations(state.pageNumber), point, 0.025);
+
+            if (result.removedIds.length > 0) {
+                activeAnnotationGesture.changed = true;
+                annotationsByPage.set(state.pageNumber, result.annotations);
+                resizeAndRedrawAnnotations(state);
+            }
+
+            return;
+        }
+
+        const points = activeAnnotationGesture.annotation.points;
+        const previousPoint = points[points.length - 1];
+        const movedEnough = Math.hypot(
+            point.x - previousPoint.x,
+            point.y - previousPoint.y,
+        ) >= 0.001;
+
+        if (movedEnough && points.length < 2000) {
+            points.push(point);
+        }
+
+        resizeAndRedrawAnnotations(state, activeAnnotationGesture.annotation);
+    };
+
+    const finishAnnotationGesture = () => {
+        if (!activeAnnotationGesture) {
+            return;
+        }
+
+        const gesture = activeAnnotationGesture;
+        activeAnnotationGesture = null;
+
+        if (gesture.type === 'eraser') {
+            if (gesture.changed) {
+                commitPageAnnotations(
+                    gesture.pageNumber,
+                    pageAnnotations(gesture.pageNumber),
+                );
+            }
+
+            return;
+        }
+
+        commitPageAnnotations(
+            gesture.pageNumber,
+            [...pageAnnotations(gesture.pageNumber), gesture.annotation],
+        );
+    };
+
     const handleHighlightClick = (event) => {
+        if (activeTool) {
+            return;
+        }
+
         const selection = window.getSelection();
 
         if (!selection?.isCollapsed) {
@@ -409,7 +833,10 @@ if (reader) {
         }
     };
 
-    const getAvailableWidth = () => Math.max(280, stage.clientWidth - 48);
+    const getAvailableWidth = () => Math.max(
+        280,
+        Math.min(980, stage.clientWidth - 48),
+    );
 
     const getPageMetadata = async (pageNumber) => {
         if (metadataCache.has(pageNumber)) {
@@ -446,13 +873,16 @@ if (reader) {
         state.surface.style.setProperty('--scale-factor', String(scale));
         state.canvas.style.width = `${width}px`;
         state.canvas.style.height = `${height}px`;
+        state.annotationCanvas.style.width = `${width}px`;
+        state.annotationCanvas.style.height = `${height}px`;
     };
 
-    const createPageState = async (pageNumber, generation) => {
+    const createPageState = async (pageNumber, generation, prioritizeMetadata = false) => {
         const frame = pageTemplate.content.firstElementChild.cloneNode(true);
         const surface = frame.querySelector('[data-page-surface]');
         const skeleton = frame.querySelector('[data-page-skeleton]');
         const canvas = frame.querySelector('[data-page-canvas]');
+        const annotationCanvas = frame.querySelector('[data-page-annotation-layer]');
         const textLayer = frame.querySelector('[data-page-text-layer]');
         const highlightLayer = frame.querySelector('[data-page-highlight-layer]');
         const error = frame.querySelector('[data-page-error]');
@@ -461,16 +891,19 @@ if (reader) {
         const numberLabel = frame.querySelector('[data-page-number]');
         let metadata = null;
 
-        try {
-            metadata = await getPageMetadata(pageNumber);
-        } catch {
-            metadata = null;
+        if (prioritizeMetadata) {
+            try {
+                metadata = await getPageMetadata(pageNumber);
+            } catch {
+                metadata = null;
+            }
         }
 
         frame.dataset.pageNumber = String(pageNumber);
         surface.setAttribute('role', 'img');
         surface.setAttribute('aria-label', `Halaman ${pageNumber} dari ${totalPages}`);
         canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${totalPages}`);
+        annotationCanvas.setAttribute('aria-label', `Anotasi halaman ${pageNumber}`);
         textLayer.setAttribute('aria-label', `Teks halaman ${pageNumber}`);
         loadingText.textContent = `Memuat halaman ${pageNumber}...`;
         numberLabel.textContent = `Halaman ${pageNumber}`;
@@ -482,6 +915,7 @@ if (reader) {
             surface,
             skeleton,
             canvas,
+            annotationCanvas,
             textLayer,
             highlightLayer,
             error,
@@ -540,6 +974,8 @@ if (reader) {
         cancelPage(state, true);
         state.canvas.width = 1;
         state.canvas.height = 1;
+        state.annotationCanvas.width = 1;
+        state.annotationCanvas.height = 1;
         state.textLayer.replaceChildren();
         state.highlightLayer.replaceChildren();
     };
@@ -587,6 +1023,16 @@ if (reader) {
                 return;
             }
 
+            if (!state.metadata) {
+                const naturalViewport = pdfPage.getViewport({ scale: 1 });
+                state.metadata = {
+                    width: naturalViewport.width,
+                    height: naturalViewport.height,
+                };
+                metadataCache.set(state.pageNumber, state.metadata);
+                applyPageLayout(state);
+            }
+
             const viewport = pdfPage.getViewport({ scale: state.scale });
             const outputScale = Math.min(window.devicePixelRatio || 1, 2);
             state.canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
@@ -623,6 +1069,7 @@ if (reader) {
 
             state.status = 'ready';
             renderHighlights(state);
+            resizeAndRedrawAnnotations(state);
             state.surface.classList.add('is-ready');
         } catch (error) {
             if (!isCancellationError(error, state, token)) {
@@ -748,6 +1195,96 @@ if (reader) {
         }
     };
 
+    const renderThumbnail = async (thumbnail) => {
+        if (!pdfDocument || thumbnail.status !== 'idle') {
+            return;
+        }
+
+        thumbnail.status = 'rendering';
+        let pdfPage = null;
+
+        try {
+            pdfPage = await pdfDocument.getPage(thumbnail.pageNumber);
+            const viewport = pdfPage.getViewport({ scale: 0.18 });
+            const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+            thumbnail.canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
+            thumbnail.canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
+            const context = thumbnail.canvas.getContext('2d', { alpha: false });
+            const renderTask = pdfPage.render({
+                canvasContext: context,
+                viewport,
+                transform: outputScale === 1
+                    ? null
+                    : [outputScale, 0, 0, outputScale, 0, 0],
+                background: '#ffffff',
+            });
+
+            await renderTask.promise;
+            thumbnail.status = 'ready';
+            thumbnail.button.classList.add('is-ready');
+            thumbnailObserver?.unobserve(thumbnail.button);
+        } catch {
+            thumbnail.status = 'idle';
+        } finally {
+            pdfPage?.cleanup();
+        }
+    };
+
+    const buildThumbnails = () => {
+        thumbnailObserver?.disconnect();
+        thumbnailStates.clear();
+        thumbnailList.replaceChildren();
+        sidebarCount.textContent = `${totalPages} halaman`;
+        const fragment = document.createDocumentFragment();
+
+        for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+            const button = document.createElement('button');
+            const preview = document.createElement('span');
+            const canvas = document.createElement('canvas');
+            const label = document.createElement('span');
+            button.type = 'button';
+            button.className = 'reader-thumbnail';
+            button.dataset.pageNumber = String(pageNumber);
+            button.setAttribute('aria-label', `Buka halaman ${pageNumber}`);
+            preview.className = 'reader-thumbnail-preview';
+            label.textContent = `Halaman ${pageNumber}`;
+            canvas.setAttribute('aria-hidden', 'true');
+            preview.append(canvas);
+            button.append(preview, label);
+            button.addEventListener('click', () => {
+                goToPage(pageNumber);
+
+                if (window.matchMedia('(max-width: 767px)').matches) {
+                    reader.classList.remove('is-sidebar-open');
+                }
+            });
+            fragment.append(button);
+            thumbnailStates.set(pageNumber, {
+                pageNumber,
+                button,
+                canvas,
+                status: 'idle',
+            });
+        }
+
+        thumbnailList.append(fragment);
+        thumbnailObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+
+                const pageNumber = Number.parseInt(entry.target.dataset.pageNumber, 10);
+                renderThumbnail(thumbnailStates.get(pageNumber));
+            });
+        }, {
+            root: thumbnailList,
+            rootMargin: '180px 0px',
+            threshold: 0.01,
+        });
+        thumbnailStates.forEach((thumbnail) => thumbnailObserver.observe(thumbnail.button));
+    };
+
     const setActivePage = (pageNumber, trackProgress = true) => {
         const nextState = pageStates.get(pageNumber);
 
@@ -762,6 +1299,14 @@ if (reader) {
         const changed = currentPage !== pageNumber;
         currentPage = pageNumber;
         updateControls();
+
+        if (changed) {
+            const thumbnail = thumbnailStates.get(pageNumber);
+            thumbnail?.button.scrollIntoView({
+                block: 'nearest',
+                inline: 'nearest',
+            });
+        }
 
         if (nextState.status === 'skeleton' || nextState.status === 'cancelled') {
             enqueuePage(nextState, true);
@@ -849,7 +1394,11 @@ if (reader) {
         }
 
         const preparedStates = await Promise.all(
-            pageNumbers.map((pageNumber) => createPageState(pageNumber, generation)),
+            pageNumbers.map((pageNumber) => createPageState(
+                pageNumber,
+                generation,
+                pageNumber === targetPage,
+            )),
         );
 
         if (generation !== activeGeneration) {
@@ -874,6 +1423,9 @@ if (reader) {
         pagesContainer.classList.remove('hidden', 'invisible');
         setDocumentLoading(false);
         updateControls();
+        loadAnnotations(range).catch(() => {
+            setSaveStatus('Anotasi belum dapat dimuat', true);
+        });
 
         await waitForLayout();
 
@@ -897,6 +1449,33 @@ if (reader) {
                 enqueuePage(pageStates.get(pageNumber));
             });
         });
+    };
+
+    const goToPage = async (pageNumber, behavior = 'smooth') => {
+        if (!pdfDocument || navigating) {
+            return;
+        }
+
+        const targetPage = Math.min(Math.max(Number(pageNumber) || 1, 1), totalPages);
+
+        if (pageStates.has(targetPage)) {
+            setActivePage(targetPage);
+            scrollToPage(targetPage, behavior);
+
+            return;
+        }
+
+        navigating = true;
+        updateControls();
+
+        try {
+            const range = resolveNavigationWindow(targetPage, activeWindow, totalPages);
+            await mountWindow(range, targetPage, 'auto');
+            sendHeartbeat();
+        } finally {
+            navigating = false;
+            updateControls();
+        }
     };
 
     const navigateWindow = async (direction) => {
@@ -939,11 +1518,25 @@ if (reader) {
         }
     };
 
+    const changeZoom = (delta) => {
+        const nextZoom = Math.min(180, Math.max(60, zoom + delta));
+
+        if (nextZoom === zoom) {
+            return;
+        }
+
+        zoom = nextZoom;
+        updateControls();
+        window.clearTimeout(zoomTimer);
+        zoomTimer = window.setTimeout(remountCurrentWindow, 200);
+    };
+
     const loadDocument = async () => {
         setDocumentError(false);
         setDocumentLoading(true);
         renderStatus.classList.add('hidden');
         observer?.disconnect();
+        thumbnailObserver?.disconnect();
         cancelQueuedAndRunningPages([...pageStates.values()]);
         pageStates.forEach(disposePage);
         pageStates = new Map();
@@ -957,10 +1550,12 @@ if (reader) {
                 withCredentials: true,
                 ...pdfAssetUrls,
                 cMapPacked: true,
+                isEvalSupported: true,
             });
             pdfDocument = await loadingTask.promise;
             totalPages = pdfDocument.numPages;
             currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+            buildThumbnails();
             const range = calculateInitialWindow(currentPage, totalPages);
             activeWindow = range;
             updateControls();
@@ -972,32 +1567,192 @@ if (reader) {
         }
     };
 
-    previousButton.addEventListener('click', () => navigateWindow(-1));
-    nextButton.addEventListener('click', () => navigateWindow(1));
-    zoomOutButton.addEventListener('click', () => {
-        zoom = Math.max(60, zoom - 10);
+    const applyHistory = (history) => {
+        annotationHistories.set(currentPage, history);
+        annotationsByPage.set(currentPage, history.current);
+        resizeAndRedrawAnnotations(pageStates.get(currentPage));
+        scheduleAnnotationSave(currentPage);
         updateControls();
-        window.clearTimeout(zoomTimer);
-        zoomTimer = window.setTimeout(remountCurrentWindow, 200);
+    };
+
+    const undoAnnotation = () => {
+        const history = ensureAnnotationHistory(currentPage);
+
+        if (history.canUndo) {
+            applyHistory(undoAnnotationHistory(history));
+        }
+    };
+
+    const redoAnnotation = () => {
+        const history = ensureAnnotationHistory(currentPage);
+
+        if (history.canRedo) {
+            applyHistory(redoAnnotationHistory(history));
+        }
+    };
+
+    const toggleSidebar = () => {
+        const isMobile = window.matchMedia('(max-width: 767px)').matches;
+
+        if (isMobile) {
+            reader.classList.toggle('is-sidebar-open');
+        } else {
+            reader.classList.toggle('is-sidebar-collapsed');
+        }
+
+        const isOpen = isMobile
+            ? reader.classList.contains('is-sidebar-open')
+            : !reader.classList.contains('is-sidebar-collapsed');
+        toggleSidebarButton.setAttribute('aria-expanded', String(isOpen));
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(remountCurrentWindow, 240);
+    };
+
+    const searchDocument = async (query) => {
+        const normalizedQuery = query.trim().toLocaleLowerCase('id-ID');
+
+        if (!normalizedQuery || !pdfDocument || searching) {
+            return;
+        }
+
+        searching = true;
+        searchInput.disabled = true;
+        setSaveStatus('Mencari...');
+        const pages = [
+            ...Array.from(
+                { length: totalPages - currentPage + 1 },
+                (_, index) => currentPage + index,
+            ),
+            ...Array.from({ length: currentPage - 1 }, (_, index) => index + 1),
+        ];
+
+        try {
+            for (const pageNumber of pages) {
+                const pdfPage = await pdfDocument.getPage(pageNumber);
+                const textContent = await pdfPage.getTextContent();
+                const text = textContent.items
+                    .map((item) => ('str' in item ? item.str : ''))
+                    .join(' ')
+                    .toLocaleLowerCase('id-ID');
+                pdfPage.cleanup();
+
+                if (text.includes(normalizedQuery)) {
+                    await goToPage(pageNumber);
+                    setSaveStatus(`Ditemukan di halaman ${pageNumber}`);
+
+                    return;
+                }
+            }
+
+            setSaveStatus('Teks tidak ditemukan', true);
+        } catch {
+            setSaveStatus('Pencarian gagal', true);
+        } finally {
+            searching = false;
+            searchInput.disabled = false;
+        }
+    };
+
+    const flushAnnotationSaves = () => {
+        annotationSaveTimers.forEach((timer, pageNumber) => {
+            window.clearTimeout(timer);
+            saveAnnotationPage(pageNumber, true);
+        });
+        annotationSaveTimers.clear();
+    };
+
+    previousButton.addEventListener('click', () => goToPage(currentPage - 1));
+    nextButton.addEventListener('click', () => goToPage(currentPage + 1));
+    zoomOutButton.addEventListener('click', () => changeZoom(-10));
+    zoomInButton.addEventListener('click', () => changeZoom(10));
+    floatingZoomOutButton.addEventListener('click', () => changeZoom(-10));
+    floatingZoomInButton.addEventListener('click', () => changeZoom(10));
+    toggleSidebarButton.addEventListener('click', toggleSidebar);
+    closeSidebarButton.addEventListener('click', () => reader.classList.remove('is-sidebar-open'));
+    sidebarBackdrop.addEventListener('click', () => reader.classList.remove('is-sidebar-open'));
+    toolButtons.forEach((button) => {
+        button.addEventListener('click', () => setActiveTool(button.dataset.annotationTool));
     });
-    zoomInButton.addEventListener('click', () => {
-        zoom = Math.min(180, zoom + 10);
-        updateControls();
-        window.clearTimeout(zoomTimer);
-        zoomTimer = window.setTimeout(remountCurrentWindow, 200);
+    undoButton.addEventListener('click', undoAnnotation);
+    redoButton.addEventListener('click', redoAnnotation);
+    searchForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        searchDocument(searchInput.value);
+    });
+    printButton.addEventListener('click', () => {
+        const printWindow = window.open(reader.dataset.documentUrl, '_blank');
+
+        if (!printWindow) {
+            setSaveStatus('Popup cetak diblokir browser', true);
+
+            return;
+        }
+
+        printWindow.addEventListener('load', () => {
+            printWindow.focus();
+            printWindow.print();
+        }, { once: true });
+    });
+    fullscreenButton.addEventListener('click', async () => {
+        if (document.fullscreenElement) {
+            await document.exitFullscreen();
+        } else {
+            await reader.requestFullscreen();
+        }
+    });
+    document.addEventListener('fullscreenchange', () => {
+        fullscreenButton.classList.toggle('is-active', Boolean(document.fullscreenElement));
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(remountCurrentWindow, 180);
+    });
+    saveTextNoteButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        const content = textNoteContent.value.trim();
+
+        if (!pendingTextNote || !content) {
+            textNoteContent.focus();
+
+            return;
+        }
+
+        const state = pageStates.get(pendingTextNote.pageNumber);
+        const brushPixels = Math.max(2, Number(brushSizeInput.value) || 4);
+        const annotation = {
+            id: annotationId(),
+            type: 'text',
+            color: annotationColorInput.value,
+            brush_size: Number(
+                Math.min(0.2, brushPixels / Math.max(1, state?.width || 1)).toFixed(6),
+            ),
+            points: [pendingTextNote.point],
+            content,
+        };
+        commitPageAnnotations(
+            pendingTextNote.pageNumber,
+            [...pageAnnotations(pendingTextNote.pageNumber), annotation],
+        );
+        pendingTextNote = null;
+        textNoteDialog.close();
+    });
+    textNoteDialog.addEventListener('close', () => {
+        pendingTextNote = null;
     });
     retryButton.addEventListener('click', loadDocument);
+    pagesContainer.addEventListener('pointerdown', startAnnotationGesture);
+    pagesContainer.addEventListener('pointermove', continueAnnotationGesture);
+    window.addEventListener('pointerup', finishAnnotationGesture);
+    window.addEventListener('pointercancel', finishAnnotationGesture);
     pagesContainer.addEventListener('mouseup', (event) => {
         const state = stateFromTarget(event.target);
 
-        if (state?.status === 'ready') {
+        if (!activeTool && state?.status === 'ready') {
             window.setTimeout(() => showHighlightPopover(state), 0);
         }
     });
     pagesContainer.addEventListener('touchend', (event) => {
         const state = stateFromTarget(event.target);
 
-        if (state?.status === 'ready') {
+        if (!activeTool && state?.status === 'ready') {
             window.setTimeout(() => showHighlightPopover(state), 0);
         }
     });
@@ -1026,16 +1781,28 @@ if (reader) {
 
         if (event.key === 'ArrowLeft') {
             event.preventDefault();
-            navigateWindow(-1);
+            goToPage(currentPage - 1);
         }
 
         if (event.key === 'ArrowRight') {
             event.preventDefault();
-            navigateWindow(1);
+            goToPage(currentPage + 1);
+        }
+
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+            event.preventDefault();
+
+            if (event.shiftKey) {
+                redoAnnotation();
+            } else {
+                undoAnnotation();
+            }
         }
 
         if (event.key === 'Escape') {
             hideHighlightPopover();
+            setActiveTool(activeTool);
+            reader.classList.remove('is-sidebar-open');
             window.getSelection()?.removeAllRanges();
         }
     });
@@ -1045,10 +1812,14 @@ if (reader) {
     });
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
+            flushAnnotationSaves();
             sendHeartbeat();
         }
     });
-    window.addEventListener('beforeunload', () => sendHeartbeat(true));
+    window.addEventListener('beforeunload', () => {
+        flushAnnotationSaves();
+        sendHeartbeat(true);
+    });
     window.setInterval(sendHeartbeat, 15000);
 
     updateControls();

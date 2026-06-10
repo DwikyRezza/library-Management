@@ -81,6 +81,11 @@ class Member extends Authenticatable
         return $this->hasMany(ReadingSession::class);
     }
 
+    public function bookAnnotations(): HasMany
+    {
+        return $this->hasMany(BookAnnotation::class);
+    }
+
     public function digitalLoans(): HasMany
     {
         return $this->hasMany(DigitalLoan::class);
