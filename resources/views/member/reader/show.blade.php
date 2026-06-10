@@ -49,7 +49,7 @@
 
         <main class="flex flex-1 p-2 sm:p-4">
             <div id="readerStage"
-                 class="relative mx-auto flex min-h-[70vh] w-full max-w-screen-2xl items-start overflow-auto rounded-lg border border-slate-300 bg-slate-800 p-3 shadow-lg sm:p-5">
+                 class="relative mx-auto min-h-[70vh] w-full max-w-screen-2xl overflow-auto rounded-lg border border-slate-300 bg-slate-800 p-3 shadow-lg sm:p-5">
                 <div id="readerLoading"
                      class="absolute inset-0 z-10 grid min-h-96 place-items-center bg-slate-800 text-sm font-semibold text-slate-100">
                     Memuat dokumen...
@@ -69,15 +69,30 @@
                     </div>
                 </div>
 
-                <div id="readerPageSurface" class="reader-page-surface invisible">
-                    <canvas id="readerCanvas"
-                            class="block max-w-none bg-white"
-                            aria-label="Halaman buku"></canvas>
-                    <div id="readerHighlightLayer" class="reader-highlight-layer" aria-hidden="true"></div>
-                    <div id="readerTextLayer" class="reader-text-layer textLayer" aria-label="Teks halaman buku"></div>
-                </div>
+                <div id="readerPages" class="reader-pages invisible" aria-live="off"></div>
+
+                <template id="readerPageTemplate">
+                    <article class="reader-page-frame" data-reader-page>
+                        <div class="reader-page-surface" data-page-surface>
+                            <div class="reader-page-skeleton" data-page-skeleton role="status">
+                                <div class="reader-page-skeleton-lines" aria-hidden="true"></div>
+                                <span data-page-loading-text>Memuat halaman...</span>
+                            </div>
+                            <canvas class="reader-page-canvas" data-page-canvas></canvas>
+                            <div class="reader-highlight-layer" data-page-highlight-layer aria-hidden="true"></div>
+                            <div class="reader-text-layer textLayer" data-page-text-layer></div>
+                            <div class="reader-page-error hidden" data-page-error>
+                                <p>Halaman gagal dirender.</p>
+                                <button type="button" data-page-retry>Coba lagi</button>
+                            </div>
+                        </div>
+                        <p class="reader-page-number" data-page-number></p>
+                    </article>
+                </template>
             </div>
         </main>
+
+        <div id="readerRenderStatus" class="reader-render-status hidden" role="status" aria-live="polite"></div>
 
         <div id="readerHighlightPopover"
              class="reader-highlight-popover hidden"
