@@ -76,6 +76,18 @@ class PublicBookController extends Controller
         ]);
     }
 
+    public function categories(): View
+    {
+        $categories = BookCategory::query()
+            ->withCount('books')
+            ->orderBy('name')
+            ->get();
+
+        return view('public.categories', [
+            'categories' => $categories,
+        ]);
+    }
+
     private function withMemberState(Builder $query, ?Member $member): Builder
     {
         if (! $member) {

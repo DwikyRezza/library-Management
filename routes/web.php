@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicBookController::class, 'home'])->name('home');
 Route::get('/books/search', [PublicBookController::class, 'search'])->name('books.search');
+Route::get('/categories', [PublicBookController::class, 'categories'])->name('book-categories.index');
 Route::get('/books/{book}/cover', [PublicBookController::class, 'cover'])->name('books.cover');
 Route::get('/auth/google/redirect/{type}', [SocialiteController::class, 'redirectToGoogle'])->name('auth.google.redirect');
 Route::get('/auth/google/callback', [SocialiteController::class, 'handleGoogleCallback'])->name('auth.google.callback');

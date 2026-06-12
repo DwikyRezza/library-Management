@@ -31,6 +31,10 @@
             </a>
             <nav class="flex items-center gap-2 sm:gap-3">
                 <a href="{{ route('books.search') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950 sm:block dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">Catalog</a>
+                <a href="{{ route('book-categories.index') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950 sm:block dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">Categories</a>
+                @auth('member')
+                    <a href="{{ route('member.borrowed.index') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950 sm:block dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">Borrowed</a>
+                @endauth
                 @guest('member')
                     <a href="{{ route('member.register') }}" class="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950 sm:block dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">Membership</a>
                 @endguest
