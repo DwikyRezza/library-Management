@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'LibraFlow - Discover your next book')
+@section('title', 'Lyrary - Where Knowledge Flows Freely')
 
 @section('content')
 <section class="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-20">

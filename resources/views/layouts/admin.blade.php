@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/png" href="{{ asset('images/logo-libraflow.png') }}">
-    <title>@yield('title', 'Admin') - LibraFlow</title>
+    <title>@yield('title', 'Admin') - Lyrary</title>
     <script>
         (() => {
-            const saved = localStorage.getItem('libraflow-theme');
+            const saved = localStorage.getItem('lyrary-theme');
             const dark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
             document.documentElement.classList.toggle('dark', dark);
         })();
@@ -26,9 +26,9 @@
            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
         <div class="flex h-20 items-center justify-between border-b border-slate-200/80 px-6 dark:border-white/10">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-                <img src="{{ asset('images/logo-libraflow.png') }}" alt="LibraFlow" class="size-10 rounded-lg object-contain">
+                <img src="{{ asset('images/logo-libraflow.png') }}" alt="Lyrary" class="size-10 rounded-lg object-contain">
                 <span>
-                    <strong class="block text-lg">LibraFlow</strong>
+                    <strong class="block text-lg">Lyrary</strong>
                     <small class="text-slate-500 dark:text-slate-400">Staff workspace</small>
                 </span>
             </a>

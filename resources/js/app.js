@@ -19,7 +19,7 @@ Alpine.data('appShell', () => ({
     toggleTheme() {
         this.dark = !this.dark;
         document.documentElement.classList.toggle('dark', this.dark);
-        localStorage.setItem('libraflow-theme', this.dark ? 'dark' : 'light');
+        localStorage.setItem('lyrary-theme', this.dark ? 'dark' : 'light');
     },
 }));
 

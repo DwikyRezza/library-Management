@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Login member - LibraFlow')
+@section('title', 'Login member - Lyrary')
 
 @section('content')
 <section class="mx-auto grid min-h-[70vh] max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:px-8">

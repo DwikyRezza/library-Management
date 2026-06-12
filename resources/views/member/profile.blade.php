@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Lengkapi Profil - LibraFlow')
+@section('title', 'Lengkapi Profil - Lyrary')
 
 @section('content')
 <section class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">

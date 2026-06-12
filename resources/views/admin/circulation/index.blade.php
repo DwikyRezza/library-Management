@@ -20,7 +20,7 @@
             <button type="button" @click="$dispatch('open-modal', 'issue-confirm')" class="btn-primary w-full">Review issue</button>
         </form>
         <x-modal name="issue-confirm" title="Issue this book?">
-            <p>LibraFlow will create an active loan and update copy, member, and book counters in one transaction.</p>
+            <p>Lyrary will create an active loan and update copy, member, and book counters in one transaction.</p>
             <x-slot:actions><button form="issue-form" class="btn-primary" :disabled="submitting"><span x-text="submitting ? 'Issuing...' : 'Issue book'"></span></button></x-slot:actions>
         </x-modal>
     </section>

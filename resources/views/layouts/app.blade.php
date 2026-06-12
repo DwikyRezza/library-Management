@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/png" href="{{ asset('images/logo-libraflow.png') }}">
-    <title>@yield('title', 'LibraFlow')</title>
+    <title>@yield('title', 'Lyrary')</title>
     <script>
         (() => {
-            const saved = localStorage.getItem('libraflow-theme');
+            const saved = localStorage.getItem('lyrary-theme');
             const dark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
             document.documentElement.classList.toggle('dark', dark);
         })();
@@ -23,10 +23,10 @@
     <header class="pub-header sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="flex items-center gap-3">
-                <img src="{{ asset('images/logo-libraflow.png') }}" alt="LibraFlow" class="size-10 rounded-lg object-contain">
+                <img src="{{ asset('images/logo-libraflow.png') }}" alt="Lyrary" class="size-10 rounded-lg object-contain">
                 <span>
-                    <span class="block text-lg font-black text-slate-950 dark:text-slate-100">LibraFlow</span>
-                    <span class="block text-xs text-slate-500 dark:text-slate-400">Modern Library System</span>
+                    <span class="block text-lg font-black text-slate-950 dark:text-slate-100">Lyrary</span>
+                    <span class="block text-xs text-slate-500 dark:text-slate-400">Where Knowledge Flows Freely</span>
                 </span>
             </a>
             <nav class="flex items-center gap-2 sm:gap-3">
@@ -95,7 +95,7 @@
 
     <footer class="pub-footer mt-16 border-t border-slate-200/80 bg-white/60">
         <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:text-slate-400">
-            <p>&copy; {{ date('Y') }} LibraFlow. Built for modern campus libraries.</p>
+            <p>&copy; {{ date('Y') }} Lyrary. Where Knowledge Flows Freely.</p>
             <p>Discover. Borrow. Learn.</p>
         </div>
     </footer>
