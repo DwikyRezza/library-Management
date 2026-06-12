@@ -91,6 +91,30 @@
                 </button>
             </div>
         </form>
+
+        <div class="panel mt-6 overflow-hidden p-0">
+            <div class="border-b border-[#00D1C1]/20 bg-gradient-to-r from-[#00D1C1]/8 to-transparent px-6 py-3">
+                <h3 class="text-sm font-bold text-[#00D1C1]">About Application</h3>
+            </div>
+            <div class="grid gap-3 px-6 py-5 text-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 dark:text-slate-400">Application</span>
+                    <span class="font-semibold text-slate-900 dark:text-slate-100">Lyrary</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 dark:text-slate-400">Version</span>
+                    <span class="rounded-full bg-[#00D1C1]/10 px-2.5 py-0.5 text-xs font-bold text-[#00D1C1]">1.0.0 Production</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 dark:text-slate-400">Developer</span>
+                    <span class="font-semibold text-slate-900 dark:text-slate-100">Muhammad Dwiky Yanuarezza</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 dark:text-slate-400">Institution</span>
+                    <span class="font-semibold text-slate-900 dark:text-slate-100">Telkom University Surabaya</span>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 @endsection
