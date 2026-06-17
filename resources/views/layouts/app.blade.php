@@ -6,7 +6,29 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="google-site-verification" content="MhFD60EegEXVl4JXdyeVrp_jVi5OuUl-Bkgn50w5p9U" />
     <link rel="icon" type="image/png" href="{{ asset('images/logo-libraflow.png') }}">
-    <title>@yield('title', 'Lyrary')</title>
+    
+    <!-- Judul Dinamis dengan Default Kaya Kata Kunci SEO -->
+    <title>@yield('title', 'Lyrary - Platform Perpustakaan & E-Reader Digital Modern')</title>
+
+    <!-- Meta Tags Utama untuk Google Indexing -->
+    <meta name="description" content="Lyrary adalah platform perpustakaan digital cerdas untuk membaca, mengelola, dan mengakses koleksi buku digital secara aman dengan fitur e-reader premium. Developed by Muhammad Dwiky Yanuarezza.">
+    <meta name="keywords" content="Lyrary, Lyrary Sytes, perpustakaan digital, e-reader pdf, baca buku online, Muhammad Dwiky Yanuarezza, Telkom University Surabaya">
+    <meta name="author" content="Muhammad Dwiky Yanuarezza">
+
+    <!-- Open Graph / Facebook (Preview saat link dibagikan di WhatsApp/Media Sosial) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://lyrary.sytes.net/">
+    <meta property="og:title" content="Lyrary - Platform Perpustakaan & E-Reader Digital">
+    <meta property="og:description" content="Akses koleksi buku digital premium kamu di Lyrary. Desain modern, cepat, dan aman.">
+    <meta property="og:image" content="{{ asset('images/logo-libraflow.png') }}">
+
+    <!-- Twitter Card -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://lyrary.sytes.net/">
+    <meta property="twitter:title" content="Lyrary - Platform Perpustakaan & E-Reader Digital">
+    <meta property="twitter:description" content="Akses koleksi buku digital premium kamu di Lyrary.">
+    <meta property="twitter:image" content="{{ asset('images/logo-libraflow.png') }}">
+
     <script>
         (() => {
             const saved = localStorage.getItem('lyrary-theme');
