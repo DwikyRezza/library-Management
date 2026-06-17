@@ -32,8 +32,8 @@
     <!-- Google Site Name Schema (Solusi membuang text "No-IP" di Google) -->
     <script type="application/ld+json">
     {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
+      "@@context": "https://schema.org",
+      "@@type": "WebSite",
       "name": "Lyrary",
       "url": "https://lyrary.sytes.net/",
       "description": "Platform Perpustakaan & E-Reader Digital Modern"
