@@ -29,6 +29,17 @@
     <meta property="twitter:description" content="Akses koleksi buku digital premium kamu di Lyrary.">
     <meta property="twitter:image" content="{{ asset('images/logo-libraflow.png') }}">
 
+    <!-- Google Site Name Schema (Solusi membuang text "No-IP" di Google) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Lyrary",
+      "url": "https://lyrary.sytes.net/",
+      "description": "Platform Perpustakaan & E-Reader Digital Modern"
+    }
+    </script>
+
     <script>
         (() => {
             const saved = localStorage.getItem('lyrary-theme');
@@ -36,6 +47,7 @@
             document.documentElement.classList.toggle('dark', dark);
         })();
     </script>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         html.dark .pub-header { background-color: rgba(16, 25, 39, 0.88); border-color: rgba(255,255,255,0.10); }
