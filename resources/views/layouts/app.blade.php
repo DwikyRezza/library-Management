@@ -10,9 +10,9 @@
     <!-- Judul Dinamis dengan Default Kaya Kata Kunci SEO -->
     <title>@yield('title', 'Lyrary - Platform Perpustakaan & E-Reader Digital Modern')</title>
 
-    <!-- Meta Tags Utama untuk Google Indexing -->
+    <!-- Meta Tags Utama untuk Google Indexing & Target Pembaca Luas -->
     <meta name="description" content="Lyrary adalah platform perpustakaan digital cerdas untuk membaca, mengelola, dan mengakses koleksi buku digital secara aman dengan fitur e-reader premium. Developed by Muhammad Dwiky Yanuarezza.">
-    <meta name="keywords" content="Lyrary, Lyrary Sytes, perpustakaan digital, e-reader pdf, baca buku online, Muhammad Dwiky Yanuarezza, Telkom University Surabaya">
+    <meta name="keywords" content="Lyrary, Lyrary Sytes, library, digital library, perpustakaan digital, e-reader pdf, baca buku online, platform baca buku, library online, tempat baca pdf, baca novel online, download buku pdf, jurnal ilmiah mahasiswa, pinjam buku digital, e-book reader free, baca buku gratis, referensi tugas besar IT, manajemen buku kuliah, cara baca PDF di browser, platform e-reader web, sistem perpustakaan Laravel, baca dokumentasi coding, repository buku digital, Muhammad Dwiky Yanuarezza, Telkom University Surabaya">
     <meta name="author" content="Muhammad Dwiky Yanuarezza">
 
     <!-- Open Graph / Facebook (Preview saat link dibagikan di WhatsApp/Media Sosial) -->
